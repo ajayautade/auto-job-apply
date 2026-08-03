@@ -1,0 +1,23 @@
+{
+  "name": "job-apply-ai",
+  "version": "1.0.0",
+  "description": "AI-powered job application assistant — upload a screenshot, get a drafted email, and send it.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.4",
+    "express": "^5.2.1",
+    "multer": "^2.4.0",
+    "nodemailer": "^10.0.12",
+    "chokidar": "^4.0.3"
+  }
+}
