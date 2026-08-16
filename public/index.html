@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Apply AI — Smart Job Application Assistant</title>
+  <meta name="description" content="Upload a job posting screenshot and let AI draft your application email automatically.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Animated Background -->
+  <div class="bg-grid"></div>
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+  <div class="bg-glow bg-glow-3"></div>
+
+  <!-- Header -->
+  <header class="header" id="header">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <line x1="10" y1="9" x2="8" y2="9"/>
+          </svg>
+        </div>
+        <span class="logo-text">Job Apply <span class="logo-accent">AI</span></span>
+      </div>
+      <div class="header-actions">
+        <button class="btn-icon" id="settingsBtn" title="Settings">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+        </button>
+        <div class="status-badges" id="statusBadges">
+          <span class="badge badge-pending" id="geminiBadge" title="Gemini API">
+            <span class="badge-dot"></span>AI
+          </span>
+          <span class="badge badge-pending" id="gmailBadge" title="Gmail SMTP">
+            <span class="badge-dot"></span>Email
+          </span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main">
+    <!-- Hero Section -->
+    <section class="hero" id="heroSection">
+      <div class="hero-content">
+        <h1 class="hero-title">
+          <span class="hero-line">Apply to Jobs</span>
+          <span class="hero-line hero-gradient">with AI Precision</span>
+        </h1>
+        <p class="hero-subtitle">Upload a screenshot of any job posting. Our AI will extract the details, draft a personalized email, and let you send it — all in seconds.</p>
+      </div>
+    </section>
+
+    <!-- Mode Switcher Tabs -->
+    <div class="mode-tabs" id="modeTabs">
+      <button class="mode-tab active" id="tabAutoPilot" data-tab="autopilot">
+        <span class="tab-icon">🤖</span>
+        <span class="tab-title">Auto-Pilot Watcher</span>
+        <span class="tab-badge">Autonomous</span>
+      </button>
+      <button class="mode-tab" id="tabManual" data-tab="manual">
+        <span class="tab-icon">✍️</span>
+        <span class="tab-title">Manual Upload</span>
+      </button>
+      <button class="mode-tab" id="tabFollowUps" data-tab="followups">
+        <span class="tab-icon">📅</span>
+        <span class="tab-title">Follow-Up Cadence</span>
+        <span class="tab-badge" id="followUpsTabBadge" style="background: rgba(124, 92, 252, 0.25); color: #c4b5fd;">0 due</span>
+      </button>
+      <button class="mode-tab" id="tabWhatsApp" data-tab="whatsapp">
+        <span class="tab-icon">💬</span>
+        <span class="tab-title">WhatsApp Outreach</span>
+        <span class="tab-badge" id="whatsAppTabBadge" style="background: rgba(37, 211, 102, 0.2); color: #25d366;">0 leads</span>
+      </button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- AUTO-PILOT WATCH FOLDER SECTION -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <section class="autopilot-section" id="autopilotSection">
+      <!-- Status Card -->
+      <div class="card autopilot-hero-card">
+        <div class="autopilot-status-bar">
+          <div class="autopilot-pulse-indicator">
+            <span class="pulse-ring"></span>
+            <span class="pulse-dot"></span>
+          </div>
+          <div class="autopilot-status-info">
+            <div class="autopilot-status-title">Auto-Pilot is Active & Watching Folder</div>
+            <div class="autopilot-status-subtitle">Just drop job screenshots into the folder. AI extracts details, drafts your email, attaches your resume, and sends it automatically.</div>
+          </div>
+          <div class="autopilot-actions">
+            <button class="btn btn-secondary btn-sm" id="scanFolderBtn" title="Scan watch folder now">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+              </svg>
+              <span>Scan Folder Now</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Folder Path Box -->
+        <div class="folder-path-box">
+          <div class="folder-path-label">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span>Watch Folder Path:</span>
+          </div>
+          <div class="folder-path-value" id="watchFolderPath">/Users/sonuautade/Desktop/job-apply-ai/auto_jobs/</div>
+          <button class="btn btn-ghost btn-sm" id="copyPathBtn" title="Copy folder path">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            <span>Copy Path</span>
+          </button>
+        </div>
+
+        <!-- 3-Step Flow Diagram -->
+        <div class="autopilot-flow-cards">
+          <div class="flow-card">
+            <div class="flow-step-num">1</div>
+            <div class="flow-card-icon">📂</div>
+            <div class="flow-card-title">Drop Screenshot(s)</div>
+            <div class="flow-card-desc">Save PNG/JPG/HEIC files directly into <code>auto_jobs/</code></div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-card">
+            <div class="flow-step-num">2</div>
+            <div class="flow-card-icon">🧠</div>
+            <div class="flow-card-title">AI Analyzes & Drafts</div>
+            <div class="flow-card-desc">Gemini reads details + your resume & writes human email</div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-card">
+            <div class="flow-step-num">3</div>
+            <div class="flow-card-icon">🚀</div>
+            <div class="flow-card-title">Auto-Sends & Deletes</div>
+            <div class="flow-card-desc">Sends via Gmail with resume & deletes screenshot to keep folder clean</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Daily Safety Limit & Jitter Card -->
+      <div class="card daily-quota-card" id="dailyQuotaCard">
+        <div class="quota-header">
+          <div class="quota-info">
+            <span class="quota-badge">🛡️ GMAIL SENDER PROTECTION ACTIVE</span>
+            <h3 class="quota-title">Daily Outbound Limit: <span id="quotaCount">0</span> / <span id="quotaLimit">150</span> emails sent today</h3>
+          </div>
+          <div class="quota-meta">
+            <span class="quota-pill" id="quotaRemaining">150 remaining</span>
+            <span class="quota-pill" id="jitterInfo">⏳ Human Jitter: 15s–35s delay</span>
+            <button class="btn btn-ghost btn-sm" id="editLimitBtn" title="Change daily outbound limit" style="padding: 4px 10px; font-size: 12px; border: 1px solid rgba(255, 255, 255, 0.15); color: #c4b5fd;">
+              ⚙️ Change Limit
+            </button>
+          </div>
+        </div>
+        <div class="quota-progress-bar-bg">
+          <div class="quota-progress-bar-fill" id="quotaProgressBar" style="width: 0%;"></div>
+        </div>
+
+        <!-- Interactive Quick Limit Selector -->
+        <div class="quota-limit-selector" id="quotaLimitSelector" style="display: none; margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+          <span style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; margin-right: 8px;">Preset Limits:</span>
+          <div style="display: inline-flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+            <button class="btn btn-secondary btn-sm limit-preset-btn" data-limit="50">50 / day</button>
+            <button class="btn btn-secondary btn-sm limit-preset-btn" data-limit="100">100 / day</button>
+            <button class="btn btn-secondary btn-sm limit-preset-btn" data-limit="150">150 / day</button>
+            <button class="btn btn-secondary btn-sm limit-preset-btn" data-limit="200">200 / day</button>
+            <button class="btn btn-secondary btn-sm limit-preset-btn" data-limit="300">300 / day</button>
+            <button class="btn btn-secondary btn-sm limit-preset-btn" data-limit="500">500 / day</button>
+            <div style="display: inline-flex; gap: 4px; align-items: center; margin-left: 6px;">
+              <input type="number" id="customLimitInput" min="1" max="2000" placeholder="Custom" style="width: 80px; padding: 4px 8px; font-size: 12px; border-radius: 4px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); color: #fff;">
+              <button class="btn btn-primary btn-sm" id="applyCustomLimitBtn" style="padding: 4px 10px; font-size: 12px;">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Auto-Pilot Activity Feed Card -->
+      <div class="card autopilot-history-card">
+        <div class="card-header">
+          <h2 class="card-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            Auto-Pilot Activity Log
+          </h2>
+          <div class="card-actions">
+            <button class="btn btn-ghost btn-sm" id="refreshHistoryBtn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="1 4 1 10 7 10"/>
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+              </svg>
+              Refresh
+            </button>
+            <button class="btn btn-ghost btn-sm" id="clearHistoryBtn">
+              Clear Log
+            </button>
+          </div>
+        </div>
+
+        <div class="history-table-container">
+          <div class="history-empty" id="historyEmpty">
+            <div class="history-empty-icon">📥</div>
+            <div class="history-empty-title">No Applications Processed Yet</div>
+            <div class="history-empty-desc">Drop your first job screenshot into <code>auto_jobs/</code>. It will appear here as soon as it is processed and sent!</div>
+          </div>
+          <table class="history-table" id="historyTable" style="display: none;">
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Company / Role</th>
+                <th>Recipient</th>
+                <th>Time</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- SMART FOLLOW-UP CADENCE SECTION -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <section class="followups-section" id="followupsSection" style="display: none;">
+      <div class="card followups-card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              Smart Automated Follow-Up Cadence
+            </h2>
+            <p class="card-subtitle">Automatically queues a polite, human follow-up 4 business days after initial outreach if no response is detected.</p>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-secondary btn-sm" id="processDueFollowUpsBtn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+              </svg>
+              <span>Process Due Follow-Ups</span>
+            </button>
+            <button class="btn btn-ghost btn-sm" id="refreshFollowUpsBtn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="1 4 1 10 7 10"/>
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+              </svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <div class="history-table-container">
+          <div class="history-empty" id="followUpsEmpty">
+            <div class="history-empty-icon">📅</div>
+            <div class="history-empty-title">No Follow-Ups Scheduled Yet</div>
+            <div class="history-empty-desc">When you send job applications in Auto-Pilot or Manual Mode, smart follow-up reminders are automatically queued here!</div>
+          </div>
+          <table class="history-table" id="followUpsTable" style="display: none;">
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Company / Role</th>
+                <th>Recipient</th>
+                <th>Original Outreach</th>
+                <th>Follow-Up Due</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="followUpsTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- WHATSAPP OUTREACH LEADS SECTION -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <section class="whatsapp-section" id="whatsappSection" style="display: none;">
+      <div class="card whatsapp-hero-card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">
+              <span style="color: #25d366; font-size: 1.3rem;">💬</span>
+              Recruiter WhatsApp Outreach Pipeline
+            </h2>
+            <p class="card-subtitle">Recruiter mobile numbers detected in job screenshots are shortlisted below with customized, human-written WhatsApp message drafts ready for your 1-click approval & dispatch.</p>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-ghost btn-sm" id="refreshWhatsAppBtn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="1 4 1 10 7 10"/>
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+              </svg>
+              Refresh Leads
+            </button>
+          </div>
+        </div>
+
+        <div class="whatsapp-leads-container">
+          <div class="history-empty" id="whatsAppEmpty">
+            <div class="history-empty-icon">📱</div>
+            <div class="history-empty-title">No WhatsApp Leads Shortlisted Yet</div>
+            <div class="history-empty-desc">When you drop job screenshots containing recruiter mobile/phone numbers, they will be automatically extracted, drafted, and shortlisted here!</div>
+          </div>
+          <div class="whatsapp-leads-grid" id="whatsAppLeadsGrid" style="display: none;">
+            <!-- Populated dynamically with lead cards -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- MANUAL MODE CONTAINER (Hidden when Auto-Pilot is active) -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <div class="manual-section-container" id="manualSectionContainer" style="display: none;">
+      <!-- Steps Progress -->
+      <div class="steps-bar" id="stepsBar">
+        <div class="step active" data-step="1">
+          <div class="step-number">1</div>
+          <span class="step-label">Upload</span>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step" data-step="2">
+          <div class="step-number">2</div>
+          <span class="step-label">Review</span>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step" data-step="3">
+          <div class="step-number">3</div>
+          <span class="step-label">Send</span>
+        </div>
+      </div>
+
+      <!-- Step 1: Upload Section -->
+      <section class="card upload-section" id="uploadSection">
+        <div class="card-header">
+          <h2 class="card-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            Upload Job Posting Screenshot
+          </h2>
+          <p class="card-subtitle">Drag and drop or click to upload a screenshot of the job posting</p>
+        </div>
+
+        <!-- Resume Upload -->
+        <div class="resume-row" id="resumeRow">
+          <div class="resume-upload-area" id="resumeUploadArea">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <span id="resumeLabel">Attach your resume (PDF/DOC)</span>
+            <input type="file" id="resumeInput" accept=".pdf,.doc,.docx" hidden>
+          </div>
+          <div class="resume-status" id="resumeStatus" style="display: none;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            <span id="resumeFileName"></span>
+            <button class="btn-icon-sm" id="removeResume" title="Remove resume">✕</button>
+          </div>
+        </div>
+
+        <!-- Screenshot Drop Zone -->
+        <div class="drop-zone" id="dropZone">
+          <div class="drop-zone-content">
+            <div class="drop-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            </div>
+            <p class="drop-text">Drag & drop job screenshot(s) here</p>
+            <p class="drop-subtext">Upload 1 or more screenshots for long job postings • PNG, JPG, WEBP, HEIC • Max 10MB each</p>
+          </div>
+          <input type="file" id="screenshotInput" accept="image/*,.heic,.heif" multiple hidden>
+        </div>
+
+        <!-- Multi-Screenshot Preview Gallery -->
+        <div class="screenshots-container" id="screenshotsContainer" style="display: none;">
+          <div class="screenshots-header">
+            <span class="screenshots-count" id="screenshotsCount">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+              <span id="screenshotsCountText">1 screenshot uploaded</span>
+            </span>
+            <button class="btn btn-ghost btn-sm" id="addMoreBtn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              + Add Another Screenshot
+            </button>
+          </div>
+          <div class="screenshots-grid" id="screenshotsGrid">
+            <!-- Populated dynamically with thumbnails -->
+          </div>
+        </div>
+
+        <!-- Analyze Button -->
+        <button class="btn btn-primary btn-lg" id="analyzeBtn" disabled>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+          <span>Analyze with AI & Draft Email</span>
+        </button>
+      </section>
+    </div>
+
+    <!-- Loading State -->
+    <section class="card loading-section" id="loadingSection" style="display: none;">
+      <div class="loading-content">
+        <div class="loading-spinner">
+          <div class="spinner-ring"></div>
+          <div class="spinner-ring"></div>
+          <div class="spinner-ring"></div>
+          <svg class="spinner-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+        </div>
+        <h3 class="loading-title">AI is analyzing your screenshot...</h3>
+        <p class="loading-subtitle" id="loadingSubtitle">Extracting job details and drafting your email</p>
+        <div class="loading-steps">
+          <div class="loading-step active" id="ls1">
+            <div class="loading-step-dot"></div>
+            <span>Reading job posting</span>
+          </div>
+          <div class="loading-step" id="ls2">
+            <div class="loading-step-dot"></div>
+            <span>Extracting details & email</span>
+          </div>
+          <div class="loading-step" id="ls3">
+            <div class="loading-step-dot"></div>
+            <span>Drafting personalized email</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 2: Review Section -->
+    <section class="review-section" id="reviewSection" style="display: none;">
+      <!-- Job Details Card -->
+      <div class="card" id="jobDetailsCard">
+        <div class="card-header">
+          <h2 class="card-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+            </svg>
+            Extracted Job Details
+          </h2>
+          <span class="badge badge-success">
+            <span class="badge-dot"></span>AI Extracted
+          </span>
+        </div>
+        <div class="job-details-grid" id="jobDetailsGrid">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Email Draft Card -->
+      <div class="card" id="emailCard">
+        <div class="card-header">
+          <h2 class="card-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            Email Draft
+          </h2>
+          <div class="card-actions">
+            <button class="btn btn-ghost btn-sm" id="regenerateBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="1 4 1 10 7 10"/>
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+              </svg>
+              Regenerate
+            </button>
+          </div>
+        </div>
+
+        <!-- Duplicate Application Alert Banner -->
+        <div class="duplicate-warning-banner" id="duplicateWarningBanner" style="display: none;">
+          <div class="duplicate-warning-header">
+            <div class="duplicate-warning-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <div class="duplicate-warning-title-group">
+              <div class="duplicate-warning-badge">ALREADY APPLIED • DUPLICATE DETECTED</div>
+              <h4 class="duplicate-warning-title" id="duplicateWarningTitle">Application already sent for this position!</h4>
+            </div>
+          </div>
+          <p class="duplicate-warning-desc" id="duplicateWarningDesc">
+            An email application for this position was previously sent to this recruiter. Duplicate emails for the same opening are automatically blocked to prevent spamming.
+          </p>
+          <div class="duplicate-warning-meta" id="duplicateWarningMeta">
+            <span class="duplicate-meta-tag" id="duplicateMetaRecipient">📧 recruiter@example.com</span>
+            <span class="duplicate-meta-tag" id="duplicateMetaRole">💼 DevOps Engineer</span>
+            <span class="duplicate-meta-tag" id="duplicateMetaTime">🕒 Sent on 29 Sep 2026</span>
+          </div>
+          <div class="duplicate-override-row">
+            <label class="duplicate-checkbox-label">
+              <input type="checkbox" id="forceResendCheckbox">
+              <span>Force send anyway (Override duplicate protection)</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="email-form">
+          <!-- To -->
+          <div class="form-group">
+            <label class="form-label" for="emailTo">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              To
+            </label>
+            <input type="email" id="emailTo" class="form-input" placeholder="recipient@company.com">
+          </div>
+
+          <!-- CC (collapsed by default) -->
+          <div class="form-group form-group-collapsed" id="ccGroup">
+            <label class="form-label" for="emailCc">CC</label>
+            <input type="email" id="emailCc" class="form-input" placeholder="cc@example.com">
+          </div>
+
+          <!-- Subject -->
+          <div class="form-group">
+            <label class="form-label" for="emailSubject">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="17" y1="10" x2="3" y2="10"/>
+                <line x1="21" y1="6" x2="3" y2="6"/>
+                <line x1="21" y1="14" x2="3" y2="14"/>
+                <line x1="17" y1="18" x2="3" y2="18"/>
+              </svg>
+              Subject
+            </label>
+            <input type="text" id="emailSubject" class="form-input" placeholder="Application for...">
+          </div>
+
+          <!-- Add CC link -->
+          <button class="btn-link" id="toggleCc" style="margin-bottom: 12px;">+ Add CC</button>
+
+          <!-- Body -->
+          <div class="form-group">
+            <label class="form-label" for="emailBody">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+              Email Body
+              <span class="form-hint">(you can edit this)</span>
+            </label>
+            <textarea id="emailBody" class="form-textarea" rows="14" placeholder="Your email content..."></textarea>
+          </div>
+
+          <!-- Resume attachment indicator -->
+          <div class="attachment-bar" id="attachmentBar" style="display: none;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.49"/>
+            </svg>
+            <span id="attachmentName">Resume.pdf</span>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="email-actions">
+          <button class="btn btn-ghost" id="startOverBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"/>
+              <polyline points="12 19 5 12 12 5"/>
+            </svg>
+            Start Over
+          </button>
+          <div class="email-actions-right">
+            <button class="btn btn-secondary" id="copyEmailBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              Copy
+            </button>
+            <button class="btn btn-primary btn-lg" id="sendEmailBtn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"/>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+              <span>Send Email</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- WhatsApp Recruiter Outreach Card (Manual Mode) -->
+      <div class="card manual-whatsapp-card" id="manualWhatsAppCard" style="display: none; margin-top: 24px;">
+        <div class="card-header">
+          <h2 class="card-title">
+            <span style="font-size: 1.3rem;">💬</span>
+            Recruiter WhatsApp Outreach Draft
+          </h2>
+          <span class="badge" style="background: rgba(37, 211, 102, 0.2); color: #25d366;">
+            <span class="badge-dot" style="background: #25d366;"></span>Mobile Detected
+          </span>
+        </div>
+        <p class="card-subtitle" style="margin-bottom: 16px;">
+          A recruiter contact number was found in the job screenshot. You can review the draft below and open directly in WhatsApp.
+        </p>
+        <div class="email-form">
+          <div class="form-group">
+            <label class="form-label" for="manualWhatsAppPhone">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+              </svg>
+              Recruiter Mobile Number
+            </label>
+            <input type="text" id="manualWhatsAppPhone" class="form-input" placeholder="+91 XXXXXXXXXX">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="manualWhatsAppMessage">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              WhatsApp Message Draft (Natural & Tailored)
+              <span class="form-hint">(you can edit before sending)</span>
+            </label>
+            <textarea id="manualWhatsAppMessage" class="form-textarea whatsapp-textarea" rows="8" placeholder="WhatsApp message text..."></textarea>
+          </div>
+        </div>
+        <div class="email-actions">
+          <button class="btn btn-secondary" id="manualCopyWhatsAppBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            Copy WhatsApp Text
+          </button>
+          <div class="email-actions-right">
+            <button class="btn btn-whatsapp btn-lg" id="manualOpenWhatsAppBtn">
+              <span>🚀 Open in WhatsApp & Send</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 3: Success Section -->
+    <section class="card success-section" id="successSection" style="display: none;">
+      <div class="success-content">
+        <div class="success-icon">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
+        <h2 class="success-title">Email Sent Successfully! 🎉</h2>
+        <p class="success-subtitle" id="successSubtitle">Your application has been sent.</p>
+        <button class="btn btn-primary" id="newApplicationBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Apply to Another Job
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Email Details Modal for Auto-Pilot History -->
+  <div class="modal-overlay" id="emailDetailsModal" style="display: none;">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3 id="modalJobTitle">Job Application Details</h3>
+        <button class="btn-icon" id="closeEmailDetails">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-meta-grid">
+          <div class="modal-meta-item">
+            <span class="modal-meta-label">Status:</span>
+            <span id="modalStatusBadge" class="badge"></span>
+          </div>
+          <div class="modal-meta-item">
+            <span class="modal-meta-label">Company:</span>
+            <span id="modalCompany" class="modal-meta-value"></span>
+          </div>
+          <div class="modal-meta-item">
+            <span class="modal-meta-label">Recipient:</span>
+            <span id="modalRecipient" class="modal-meta-value"></span>
+          </div>
+          <div class="modal-meta-item">
+            <span class="modal-meta-label">Timestamp:</span>
+            <span id="modalTime" class="modal-meta-value"></span>
+          </div>
+          <div class="modal-meta-item">
+            <span class="modal-meta-label">Resume Attached:</span>
+            <span id="modalResume" class="modal-meta-value"></span>
+          </div>
+          <div class="modal-meta-item">
+            <span class="modal-meta-label">Files Processed:</span>
+            <span id="modalFiles" class="modal-meta-value"></span>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 16px;">
+          <label class="form-label">Subject</label>
+          <input type="text" id="modalSubject" class="form-input" readonly>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Sent Email Body</label>
+          <textarea id="modalBody" class="form-textarea" rows="12" readonly></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notifications -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="settingsModal" style="display: none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Setup Guide</h3>
+        <button class="btn-icon" id="closeSettings">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="setup-section">
+          <h4>1. Gemini API Key <span class="badge badge-sm" id="geminiSetupBadge">Not Set</span></h4>
+          <p>Get your free API key from <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a> and add it to the <code>.env</code> file.</p>
+        </div>
+        <div class="setup-section">
+          <h4>2. Gmail App Password <span class="badge badge-sm" id="gmailSetupBadge">Not Set</span></h4>
+          <ol>
+            <li>Enable <a href="https://myaccount.google.com/security" target="_blank">2-Factor Authentication</a> on your Google account</li>
+            <li>Go to <a href="https://myaccount.google.com/apppasswords" target="_blank">App Passwords</a></li>
+            <li>Create an App Password for "Mail"</li>
+            <li>Add it to the <code>.env</code> file</li>
+          </ol>
+        </div>
+        <div class="setup-section">
+          <h4>3. Your Details</h4>
+          <p>Update <code>YOUR_NAME</code>, <code>YOUR_EMAIL</code>, <code>YOUR_PHONE</code>, etc. in the <code>.env</code> file for personalized emails.</p>
+        </div>
+        <div class="env-preview">
+          <code>
+            GEMINI_API_KEY=your_key<br>
+            GMAIL_USER=your@gmail.com<br>
+            GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx<br>
+            YOUR_NAME=Your Name<br>
+            YOUR_PHONE=+91 XXXXXXXXXX
+          </code>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
