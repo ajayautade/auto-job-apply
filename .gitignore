@@ -47,3 +47,6 @@ public/uploads/*
 public/uploads/resumes/*
 !public/uploads/resumes/.gitkeep
 public/uploads/resumes/.latest_resume.json
+
+# Local User Profile Data
+user_profile.json

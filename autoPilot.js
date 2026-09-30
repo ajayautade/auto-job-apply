@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
+const { getUserProfile } = require('./profileManager');
 
 function extractAllEmails(text) {
   if (!text || typeof text !== 'string') return [];
@@ -472,31 +473,27 @@ function initAutoPilot({
   }
 
   async function draftFollowUpEmail(followUpItem, resumeInfo) {
-    const defaultSig = `Er. Ajay Autade\nDevOps Engineer | Computer Science Engineer\nP: +91 9545034120 | +91 7820902571\nE: ajayautade2@gmail.com | contact@ajayautade.com\nW: ajayautade.com | In: linkedin.com/in/ajayautadepatil`;
-    const userDetails = {
-      name: process.env.YOUR_NAME || 'Er. Ajay Autade',
-      signature: process.env.EMAIL_SIGNATURE ? process.env.EMAIL_SIGNATURE.replace(/\\n/g, '\n') : defaultSig
-    };
+    const profile = getUserProfile();
 
     const greetingTarget = followUpItem.contact_person && followUpItem.contact_person !== 'null' && followUpItem.contact_person !== 'Hiring Manager'
       ? `Hi ${followUpItem.contact_person.split(' ')[0]},`
       : (followUpItem.company_name && followUpItem.company_name !== 'null' ? `Hi ${followUpItem.company_name} Team,` : 'Hi there,');
 
-    const prompt = `You are a real-world DevOps Engineer writing a short, polite, and human follow-up email regarding an earlier job application.
+    const prompt = `You are a real-world professional (${profile.title || 'Engineer'}) writing a short, polite, and human follow-up email regarding an earlier job application.
 
 ANTI-AI RULES:
 1. Keep it extremely brief: 2 short paragraphs (under 60 words total).
 2. Start naturally with "${greetingTarget}".
-3. State purpose clearly: "Following up briefly on my application for the ${followUpItem.job_title || 'DevOps'} role sent earlier. I wanted to reiterate my strong interest in joining ${followUpItem.company_name || 'your team'}."
+3. State purpose clearly: "Following up briefly on my application for the ${followUpItem.job_title || profile.title || 'open'} role sent earlier. I wanted to reiterate my strong interest in joining ${followUpItem.company_name || 'your team'}."
 4. Mention that your resume is re-attached for quick reference.
 5. Close naturally ("Best,", "Thanks,", or "Best regards,") followed by the exact signature below.
 
 MANDATORY SIGNATURE BLOCK:
-${userDetails.signature}
+${profile.signature}
 
 Return ONLY valid JSON:
 {
-  "subject": "Following up: ${followUpItem.job_title || 'DevOps Position'} Application - ${userDetails.name}",
+  "subject": "Following up: ${followUpItem.job_title || profile.title || 'Job Application'} - ${profile.name}",
   "body": "Natural follow-up text ending with the exact signature"
 }`;
 
@@ -506,8 +503,8 @@ Return ONLY valid JSON:
       return parseJsonFromText(resText);
     } catch (e) {
       return {
-        subject: `Following up: ${followUpItem.job_title || 'DevOps Position'} Application - ${userDetails.name}`,
-        body: `${greetingTarget}\n\nI wanted to follow up briefly on my application for the ${followUpItem.job_title || 'DevOps'} role sent earlier. I understand your team is busy, but I remain very interested in contributing to ${followUpItem.company_name || 'your team'}.\n\nI've re-attached my resume for your quick reference. Please let me know if you would like any additional information or have time for a brief chat.\n\nBest,\n\n${userDetails.signature}`
+        subject: `Following up: ${followUpItem.job_title || profile.title || 'Job Application'} - ${profile.name}`,
+        body: `${greetingTarget}\n\nI wanted to follow up briefly on my application for the ${followUpItem.job_title || profile.title || 'open'} role sent earlier. I understand your team is busy, but I remain very interested in contributing to ${followUpItem.company_name || 'your team'}.\n\nI've re-attached my resume for your quick reference. Please let me know if you would like any additional information or have time for a brief chat.\n\nBest,\n\n${profile.signature}`
       };
     }
   }
@@ -562,7 +559,7 @@ Return ONLY valid JSON:
       phone_number: cleanPhone,
       display_phone: display_phone || formatDisplayPhone(cleanPhone),
       company_name: company_name || 'Company',
-      job_title: job_title || 'DevOps Engineer',
+      job_title: job_title || 'Software Professional',
       contact_person: contact_person || null,
       message_draft: message_draft || '',
       status: 'PENDING_APPROVAL', // PENDING_APPROVAL | SENT | DISMISSED
@@ -621,32 +618,29 @@ Return ONLY valid JSON:
     if (typeof draftWhatsAppMessage === 'function') {
       return await draftWhatsAppMessage(jobData, resumeInfo);
     }
-    const userDetails = {
-      name: process.env.YOUR_NAME || 'Er. Ajay Autade',
-      phone: process.env.YOUR_PHONE || '+91 9545034120',
-      portfolio: process.env.YOUR_PORTFOLIO || 'https://ajayautade.com',
-      linkedin: process.env.YOUR_LINKEDIN || 'https://linkedin.com/in/ajayautadepatil'
-    };
+    const profile = getUserProfile();
     const recipientGreeting = jobData.contact_person && jobData.contact_person !== 'null' && jobData.contact_person !== 'Hiring Manager'
       ? `Hi ${jobData.contact_person.split(' ')[0]},`
       : `Hi ${jobData.company_name && jobData.company_name !== 'null' ? jobData.company_name + ' Team' : 'there'},`;
 
-    const prompt = `You are a talented, real-world DevOps Engineer writing an authentic, direct, and conversational WhatsApp message to a recruiter regarding a job opening.
+    const customAiContext = profile.custom_ai_instructions ? `\nCandidate Specific Context: ${profile.custom_ai_instructions}` : '';
+
+    const prompt = `You are a talented, real-world professional (${profile.title || 'Engineer'}) writing an authentic, direct, and conversational WhatsApp message to a recruiter regarding a job opening.
 
 Write a clean, concise, human-written WhatsApp message.
 
 CRITICAL GUIDELINES:
 - Keep it concise (under 90 words total) — optimized for WhatsApp instant messaging.
 - Warm, polite, confident, and natural tone (NO robotic/AI clichés).
-- Mention the job role ("${jobData.job_title || 'DevOps Engineer'}") and company ("${jobData.company_name || 'your company'}").
-- Highlight candidate's core strengths: AWS cloud infrastructure, Docker, Kubernetes, CI/CD pipelines, and Linux sysadmin.
+- Mention the job role ("${jobData.job_title || profile.title || 'open role'}") and company ("${jobData.company_name || 'your company'}").
+- Highlight candidate's core strengths: ${profile.core_skills || 'problem solving and software development'}.${customAiContext}
 - Offer to share resume PDF and invite a brief introductory chat.
 - Sign off with:
   Best regards,
-  ${userDetails.name}
-  DevOps Engineer
-  📱 +91 9545034120 / +91 7820902571
-  🌐 ${userDetails.portfolio} | 💼 ${userDetails.linkedin}
+  ${profile.name}
+  ${profile.title}
+  📱 ${profile.phone || ''}
+  🌐 ${profile.portfolio || ''} | 💼 ${profile.linkedin || ''}
 - Output ONLY the plain message text with natural line breaks.`;
 
     const promptContents = [prompt];
@@ -671,19 +665,24 @@ CRITICAL GUIDELINES:
       msg = msg.replace(/^```[a-z]*\n/i, '').replace(/\n```$/g, '').trim();
       return msg;
     } catch (err) {
+      const contactLine = [
+        profile.phone ? `📱 ${profile.phone}` : '',
+        profile.portfolio ? `🌐 ${profile.portfolio}` : '',
+        profile.linkedin ? `💼 ${profile.linkedin}` : ''
+      ].filter(Boolean).join('\n');
+
       return `${recipientGreeting}
 
-Hope you're doing well! I saw your opening for the ${jobData.job_title || 'DevOps'} role at ${jobData.company_name || 'your team'} and wanted to connect directly.
+Hope you're doing well! I saw your opening for the ${jobData.job_title || profile.title || 'open'} role at ${jobData.company_name || 'your team'} and wanted to connect directly.
 
-I'm ${userDetails.name}, a Computer Science Engineer with hands-on experience in AWS, Docker, Kubernetes, CI/CD automation, and Linux. My technical background aligns well with the requirements for this role.
+I'm ${profile.name}, a ${profile.title || 'Software Professional'} with hands-on experience in ${profile.core_skills || 'software development'}. My background aligns well with the requirements for this role.
 
 I'd love to share my updated resume and discuss how I can contribute. Are you available for a brief chat?
 
 Best regards,
-${userDetails.name}
-DevOps Engineer
-📱 +91 9545034120 / +91 7820902571
-🌐 ${userDetails.portfolio} | 💼 ${userDetails.linkedin}`;
+${profile.name}
+${profile.title}
+${contactLine}`;
     }
   }
 

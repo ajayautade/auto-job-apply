@@ -213,33 +213,23 @@ app.post('/api/remove-resume', (req, res) => {
   res.json({ success: true, message: 'Resume removed' });
 });
 
-// ──────────────────────────────────────────────
-// Default Professional Email Signature
-// ──────────────────────────────────────────────
-const DEFAULT_SIGNATURE = `Er. Ajay Autade
-DevOps Engineer | Computer Science Engineer
-P: +91 9545034120 | +91 7820902571
-E: ajayautade2@gmail.com | contact@ajayautade.com
-W: ajayautade.com | In: linkedin.com/in/ajayautadepatil`;
+const { getUserProfile, saveUserProfile, ROLE_PRESETS } = require('./profileManager');
 
 async function draftPersonalizedEmail(jobData, resumeInfo) {
-  const userDetails = {
-    name: process.env.YOUR_NAME || 'Er. Ajay Autade',
-    email: process.env.YOUR_EMAIL || process.env.GMAIL_USER || 'ajayautade2@gmail.com',
-    phone: process.env.YOUR_PHONE || '+91 9545034120',
-    linkedin: process.env.YOUR_LINKEDIN || 'https://www.linkedin.com/in/ajayautadepatil',
-    github: process.env.YOUR_GITHUB || 'https://github.com/ajayautade',
-    portfolio: process.env.YOUR_PORTFOLIO || 'https://ajayautade.com',
-    signature: process.env.EMAIL_SIGNATURE ? process.env.EMAIL_SIGNATURE.replace(/\\n/g, '\n') : DEFAULT_SIGNATURE
-  };
+  const profile = getUserProfile();
 
   const greetingTarget = jobData.contact_person && jobData.contact_person !== 'null' && jobData.contact_person !== 'Hiring Manager'
     ? `Hi ${jobData.contact_person.split(' ')[0]},`
     : (jobData.company_name && jobData.company_name !== 'null' ? `Hi ${jobData.company_name} Team,` : 'Hi there,');
 
-  const emailPrompt = `You are a talented, real-world DevOps Engineer writing an authentic, direct, and conversational job outreach email to a hiring team.
+  const candidateRole = profile.title || 'Software Professional';
+  const candidateSkills = profile.core_skills || 'Modern Engineering & Problem Solving';
+  const customAiContext = profile.custom_ai_instructions ? `CANDIDATE CUSTOM CONTEXT & HIGHLIGHTS:\n${profile.custom_ai_instructions}\n` : '';
+  const customPromptRules = profile.custom_prompt_rules ? `CUSTOM PROMPT RULES:\n${profile.custom_prompt_rules}\n` : '';
 
-Write this email exactly like a real human engineer would write it — crisp, natural, confident, and engaging.
+  const emailPrompt = `You are a talented, real-world professional (${candidateRole}) writing an authentic, direct, and conversational job outreach email to a hiring team.
+
+Write this email exactly like a real human professional would write it — crisp, natural, confident, and engaging.
 
 ANTI-AI RULES (MUST FOLLOW STRICTLY):
 1. NEVER use AI buzzwords or robotic clichés:
@@ -249,9 +239,10 @@ ANTI-AI RULES (MUST FOLLOW STRICTLY):
    - NO "proven track record", "invaluable asset", "synergies", "esteemed organization", "tapestry", "beacon"
    - NO "Furthermore", "Moreover", "In conclusion", "Additionally"
 2. TONE & STYLE:
-   - Talk engineer-to-engineer / engineer-to-recruiter: confident, direct, and approachable.
+   - Talk professional-to-professional / engineer-to-recruiter: confident, direct, and approachable.
    - Start naturally with "${greetingTarget}" and state the purpose in 1 clear sentence ("I saw your opening for ${jobData.job_title ? `the ${jobData.job_title} role` : 'your open role'} at ${jobData.company_name || 'your company'} and wanted to reach out directly.").
-   - Highlight 2-3 concrete, impressive achievements from the attached resume (e.g. automating AWS infrastructure with Terraform, Docker/Kubernetes container orchestration with HPA, cutting deployment times by ~60% with Jenkins/GitHub Actions, or building MLOps deployment pipelines with ArgoCD & Prometheus).
+   - Highlight 2-3 concrete, impressive achievements from the attached resume and candidate skills (${candidateSkills}).
+   - If candidate custom context is provided below, incorporate those key accomplishments naturally.
    - Tie your actual hands-on skills naturally to what they are looking for without sounding scripted.
    - Keep it short: 2 to 3 compact paragraphs (around 100-140 words total). Recruiters should be able to scan and read it in 15 seconds.
    - Mention that your resume is attached for more details.
@@ -259,19 +250,20 @@ ANTI-AI RULES (MUST FOLLOW STRICTLY):
 3. SIGNATURE:
    - Sign off with a natural closing ("Best,", "Thanks,", or "Best regards,") followed by the exact signature below.
 
+${customAiContext}${customPromptRules}
 JOB DETAILS:
 - Company: ${jobData.company_name || 'the team'}
-- Position: ${jobData.job_title || 'DevOps Engineer'}
+- Position: ${jobData.job_title || profile.title || 'Open Position'}
 - Key Requirements: ${(jobData.key_requirements || []).join(', ')}
 - Key Skills: ${(jobData.key_skills || []).join(', ')}
 - Contact Person: ${jobData.contact_person || ''}
 
 MANDATORY SIGNATURE BLOCK (Place at the end):
-${userDetails.signature}
+${profile.signature}
 
 Return ONLY valid JSON in this format:
 {
-  "subject": "${jobData.job_title ? `${jobData.job_title} Application` : 'DevOps Engineer Application'} - ${userDetails.name}",
+  "subject": "${jobData.job_title ? `${jobData.job_title} Application` : (profile.title ? `${profile.title} Application` : 'Job Application')} - ${profile.name}",
   "body": "Natural, human-sounding email body ending with the exact signature block"
 }`;
 
@@ -307,8 +299,8 @@ Return ONLY valid JSON in this format:
       : (jobData.company_name && jobData.company_name !== 'null' ? `Hi ${jobData.company_name} Team,` : 'Hi there,');
 
     return {
-      subject: `${jobData.job_title ? `${jobData.job_title} Application` : 'DevOps Engineer Application'} - ${userDetails.name}`,
-      body: `${fallbackGreeting}\n\nI saw your opening for ${jobData.job_title ? `the ${jobData.job_title} role` : 'the DevOps position'} at ${jobData.company_name || 'your company'} and wanted to reach out directly.\n\nIn my recent work, I have focused on automating AWS cloud infrastructure using Terraform and building automated CI/CD pipelines with GitHub Actions and Jenkins, which helped increase release frequency and reduce manual deployment overhead. I also have hands-on experience managing containerized applications on Kubernetes with Docker and setting up proactive monitoring with Prometheus and Grafana.\n\nI've attached my resume for more background on my projects and experience. I would love to connect for a brief chat to learn more about what you're building and see if my background is a good fit.\n\nBest,\n\n${userDetails.signature}`
+      subject: `${jobData.job_title ? `${jobData.job_title} Application` : (profile.title ? `${profile.title} Application` : 'Job Application')} - ${profile.name}`,
+      body: `${fallbackGreeting}\n\nI saw your opening for ${jobData.job_title ? `the ${jobData.job_title} role` : 'the open position'} at ${jobData.company_name || 'your company'} and wanted to reach out directly.\n\nIn my recent work, I have focused on ${profile.core_skills || 'engineering robust solutions'}, delivering high quality and scalable results.\n\nI've attached my resume for more background on my projects and experience. I would love to connect for a brief chat to learn more about what you're building and see if my background is a good fit.\n\nBest,\n\n${profile.signature}`
     };
   }
 }
@@ -317,6 +309,7 @@ Return ONLY valid JSON in this format:
 // Helper: Send Email with Attachments
 // ──────────────────────────────────────────────
 async function sendEmailHelper({ to, subject, body, cc, bcc, resumePath, resumeOriginalName }) {
+  const profile = getUserProfile();
   if (!to || !subject || !body) {
     throw new Error('Missing required fields: to, subject, body');
   }
@@ -790,17 +783,48 @@ app.post('/api/whatsapp/generate-message', async (req, res) => {
 });
 
 // ──────────────────────────────────────────────
+// API: Profile & AI Persona Configuration
+// ──────────────────────────────────────────────
+app.get('/api/profile', (req, res) => {
+  try {
+    const profile = getUserProfile();
+    res.json({ success: true, profile });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load profile', details: err.message });
+  }
+});
+
+app.post('/api/profile', (req, res) => {
+  try {
+    const updated = saveUserProfile(req.body);
+    res.json({
+      success: true,
+      message: 'Profile & AI Persona saved successfully',
+      profile: updated
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to save profile', details: err.message });
+  }
+});
+
+app.get('/api/profile/presets', (req, res) => {
+  res.json({ success: true, presets: ROLE_PRESETS });
+});
+
+// ──────────────────────────────────────────────
 // API: Get user settings
 // ──────────────────────────────────────────────
 app.get('/api/settings', (req, res) => {
   const currentResume = getSavedResume();
+  const profile = getUserProfile();
   res.json({
-    name: process.env.YOUR_NAME || '',
-    email: process.env.YOUR_EMAIL || process.env.GMAIL_USER || '',
-    phone: process.env.YOUR_PHONE || '',
-    linkedin: process.env.YOUR_LINKEDIN || '',
-    github: process.env.YOUR_GITHUB || '',
-    portfolio: process.env.YOUR_PORTFOLIO || '',
+    name: profile.name || process.env.YOUR_NAME || '',
+    email: profile.email || process.env.YOUR_EMAIL || process.env.GMAIL_USER || '',
+    phone: profile.phone || process.env.YOUR_PHONE || '',
+    linkedin: profile.linkedin || process.env.YOUR_LINKEDIN || '',
+    github: profile.github || process.env.YOUR_GITHUB || '',
+    portfolio: profile.portfolio || process.env.YOUR_PORTFOLIO || '',
+    profile: profile,
     has_resume: !!currentResume.path,
     resume_name: currentResume.originalName || null,
     watch_folder: autoPilot.watchDir,

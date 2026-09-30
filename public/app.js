@@ -8,12 +8,41 @@ document.addEventListener('DOMContentLoaded', () => {
   const tabManual = document.getElementById('tabManual');
   const tabFollowUps = document.getElementById('tabFollowUps');
   const tabWhatsApp = document.getElementById('tabWhatsApp');
+  const tabProfile = document.getElementById('tabProfile');
+  const tabGuide = document.getElementById('tabGuide');
   const autopilotSection = document.getElementById('autopilotSection');
   const manualSectionContainer = document.getElementById('manualSectionContainer');
   const followupsSection = document.getElementById('followupsSection');
   const whatsappSection = document.getElementById('whatsappSection');
+  const profileSection = document.getElementById('profileSection');
+  const guideSection = document.getElementById('guideSection');
   const followUpsTabBadge = document.getElementById('followUpsTabBadge');
   const whatsAppTabBadge = document.getElementById('whatsAppTabBadge');
+  const profileRoleBadge = document.getElementById('profileRoleBadge');
+
+  // Profile Form Elements
+  const profileForm = document.getElementById('profileForm');
+  const profileName = document.getElementById('profileName');
+  const profileTitle = document.getElementById('profileTitle');
+  const profileEmail = document.getElementById('profileEmail');
+  const profilePhone = document.getElementById('profilePhone');
+  const profilePortfolio = document.getElementById('profilePortfolio');
+  const profileLinkedin = document.getElementById('profileLinkedin');
+  const profileGithub = document.getElementById('profileGithub');
+  const profileTargetRoles = document.getElementById('profileTargetRoles');
+  const profileCoreSkills = document.getElementById('profileCoreSkills');
+  const profileCustomAiInstructions = document.getElementById('profileCustomAiInstructions');
+  const profileSignature = document.getElementById('profileSignature');
+  const activePresetBadge = document.getElementById('activePresetBadge');
+  const presetPillsGrid = document.getElementById('presetPillsGrid');
+  const resetPresetBtn = document.getElementById('resetPresetBtn');
+  const autoGenerateSigBtn = document.getElementById('autoGenerateSigBtn');
+  const saveProfileBtn = document.getElementById('saveProfileBtn');
+  const personaLivePreview = document.getElementById('personaLivePreview');
+  const profileResumeTitle = document.getElementById('profileResumeTitle');
+  const profileUploadResumeBtn = document.getElementById('profileUploadResumeBtn');
+  const profileResumeInput = document.getElementById('profileResumeInput');
+  const guideGoToProfileBtn = document.getElementById('guideGoToProfileBtn');
 
   const watchFolderPath = document.getElementById('watchFolderPath');
   const copyPathBtn = document.getElementById('copyPathBtn');
@@ -125,23 +154,36 @@ document.addEventListener('DOMContentLoaded', () => {
   let historyData = [];
   let followUpsData = [];
   let whatsAppLeadsData = [];
+  let userProfile = null;
+  let rolePresets = {};
+  let currentPresetId = 'devops';
 
-  // ── Mode Switcher (4 Tabs) ──
+  // ── Mode Switcher (6 Tabs) ──
   tabAutoPilot.addEventListener('click', () => switchMode('autopilot'));
   tabManual.addEventListener('click', () => switchMode('manual'));
   if (tabFollowUps) tabFollowUps.addEventListener('click', () => switchMode('followups'));
   if (tabWhatsApp) tabWhatsApp.addEventListener('click', () => switchMode('whatsapp'));
+  if (tabProfile) tabProfile.addEventListener('click', () => switchMode('profile'));
+  if (tabGuide) tabGuide.addEventListener('click', () => switchMode('guide'));
+
+  if (guideGoToProfileBtn) {
+    guideGoToProfileBtn.addEventListener('click', () => switchMode('profile'));
+  }
 
   function switchMode(mode) {
     tabAutoPilot.classList.toggle('active', mode === 'autopilot');
     tabManual.classList.toggle('active', mode === 'manual');
     if (tabFollowUps) tabFollowUps.classList.toggle('active', mode === 'followups');
     if (tabWhatsApp) tabWhatsApp.classList.toggle('active', mode === 'whatsapp');
+    if (tabProfile) tabProfile.classList.toggle('active', mode === 'profile');
+    if (tabGuide) tabGuide.classList.toggle('active', mode === 'guide');
 
     autopilotSection.style.display = mode === 'autopilot' ? 'flex' : 'none';
     manualSectionContainer.style.display = mode === 'manual' ? 'block' : 'none';
     if (followupsSection) followupsSection.style.display = mode === 'followups' ? 'flex' : 'none';
     if (whatsappSection) whatsappSection.style.display = mode === 'whatsapp' ? 'flex' : 'none';
+    if (profileSection) profileSection.style.display = mode === 'profile' ? 'flex' : 'none';
+    if (guideSection) guideSection.style.display = mode === 'guide' ? 'flex' : 'none';
 
     loadingSection.style.display = 'none';
     reviewSection.style.display = 'none';
@@ -154,6 +196,8 @@ document.addEventListener('DOMContentLoaded', () => {
       loadFollowUps();
     } else if (mode === 'whatsapp') {
       loadWhatsAppLeads();
+    } else if (mode === 'profile') {
+      loadProfile();
     }
   }
 
@@ -916,13 +960,25 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('gmailSetupBadge').className = 'badge badge-sm badge-pending';
       }
 
+      if (data.profile) {
+        userProfile = data.profile;
+        if (profileRoleBadge) {
+          const pName = data.profile.preset_id ? (data.profile.preset_id.charAt(0).toUpperCase() + data.profile.preset_id.slice(1)) : 'Profile';
+          profileRoleBadge.textContent = pName;
+        }
+      }
+
       if (data.has_resume) {
         showResumeStatus(data.resume_name);
+        if (profileResumeTitle) profileResumeTitle.textContent = `📄 Attached: ${data.resume_name}`;
       }
     } catch (err) {
       console.error('Failed to check settings:', err);
     }
   }
+
+  // Load profile settings & presets in background on start
+  loadProfile();
 
   // ── Resume Upload ──
   resumeUploadArea.addEventListener('click', () => resumeInput.click());
@@ -1546,6 +1602,258 @@ document.addEventListener('DOMContentLoaded', () => {
       Regenerate
     `;
   });
+
+  // ═══════════════════════════════════════════════
+  // AI PERSONA & CANDIDATE PROFILE LOGIC
+  // ═══════════════════════════════════════════════
+
+  async function loadProfile() {
+    try {
+      // 1. Fetch presets
+      const presetsRes = await fetch('/api/profile/presets');
+      if (presetsRes.ok) {
+        const pData = await presetsRes.json();
+        rolePresets = pData.presets || {};
+      }
+
+      // 2. Fetch profile
+      const res = await fetch('/api/profile');
+      if (res.ok) {
+        const data = await res.json();
+        userProfile = data.profile || {};
+        populateProfileForm(userProfile);
+      }
+    } catch (err) {
+      console.error('Failed to load profile:', err);
+      showToast('Could not load profile settings', 'error');
+    }
+  }
+
+  function populateProfileForm(profile) {
+    if (!profile) return;
+    currentPresetId = profile.preset_id || 'devops';
+
+    if (profileName) profileName.value = profile.name || '';
+    if (profileTitle) profileTitle.value = profile.title || '';
+    if (profileEmail) profileEmail.value = profile.email || '';
+    if (profilePhone) profilePhone.value = profile.phone || '';
+    if (profilePortfolio) profilePortfolio.value = profile.portfolio || '';
+    if (profileLinkedin) profileLinkedin.value = profile.linkedin || '';
+    if (profileGithub) profileGithub.value = profile.github || '';
+    if (profileTargetRoles) profileTargetRoles.value = profile.target_roles || '';
+    if (profileCoreSkills) profileCoreSkills.value = profile.core_skills || '';
+    if (profileCustomAiInstructions) profileCustomAiInstructions.value = profile.custom_ai_instructions || '';
+    if (profileSignature) profileSignature.value = profile.signature || '';
+
+    updatePresetPillSelection(currentPresetId);
+
+    if (profileRoleBadge) {
+      const presetObj = rolePresets[currentPresetId];
+      profileRoleBadge.textContent = presetObj ? presetObj.name.split(' ')[0] : 'Custom';
+    }
+
+    updateLivePreview();
+  }
+
+  function updatePresetPillSelection(presetId) {
+    if (presetPillsGrid) {
+      presetPillsGrid.querySelectorAll('.preset-pill').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.preset === presetId);
+      });
+    }
+    const p = rolePresets[presetId];
+    if (activePresetBadge) {
+      activePresetBadge.textContent = p ? p.name : 'Custom Role';
+    }
+  }
+
+  function selectPreset(presetId) {
+    currentPresetId = presetId;
+    updatePresetPillSelection(presetId);
+    const p = rolePresets[presetId];
+    if (!p) return;
+
+    if (presetId !== 'custom') {
+      if (profileTitle) profileTitle.value = p.title;
+      if (profileTargetRoles) profileTargetRoles.value = p.target_roles;
+      if (profileCoreSkills) profileCoreSkills.value = p.core_skills;
+      if (profileCustomAiInstructions) profileCustomAiInstructions.value = p.custom_ai_instructions;
+    }
+
+    generateSignatureFromFields();
+    updateLivePreview();
+    showToast(`Loaded ${p.name} preset! Review & save.`, 'info');
+  }
+
+  function generateSignatureFromFields() {
+    const name = profileName ? profileName.value.trim() : 'Candidate Name';
+    const title = profileTitle ? profileTitle.value.trim() : '';
+    const phone = profilePhone ? profilePhone.value.trim() : '';
+    const email = profileEmail ? profileEmail.value.trim() : '';
+    const portfolio = profilePortfolio ? profilePortfolio.value.trim() : '';
+    const linkedin = profileLinkedin ? profileLinkedin.value.trim() : '';
+
+    const lines = [];
+    if (name) lines.push(name);
+    if (title) lines.push(title);
+
+    const contactLine = [];
+    if (phone) contactLine.push(`P: ${phone}`);
+    if (email) contactLine.push(`E: ${email}`);
+    if (contactLine.length > 0) lines.push(contactLine.join(' | '));
+
+    const linkLine = [];
+    if (portfolio) linkLine.push(`W: ${portfolio.replace(/^https?:\/\//, '')}`);
+    if (linkedin) linkLine.push(`In: ${linkedin.replace(/^https?:\/\/(www\.)?/, '')}`);
+    if (linkLine.length > 0) lines.push(linkLine.join(' | '));
+
+    const sigText = lines.join('\n');
+    if (profileSignature) profileSignature.value = sigText;
+    return sigText;
+  }
+
+  function updateLivePreview() {
+    if (!personaLivePreview) return;
+    const name = profileName ? profileName.value.trim() || 'Candidate Name' : 'Candidate Name';
+    const title = profileTitle ? profileTitle.value.trim() || 'Professional' : 'Professional';
+    const skills = profileCoreSkills ? profileCoreSkills.value.trim() || 'modern software engineering' : 'modern software engineering';
+    const custom = profileCustomAiInstructions ? profileCustomAiInstructions.value.trim() : '';
+    const sig = profileSignature ? profileSignature.value.trim() : '';
+
+    const sampleEmail = `Hi Sarah,
+
+I saw your opening for the ${title} role at TechCorp and wanted to reach out directly.
+
+In my recent work, I have focused on ${skills.split(',').slice(0, 3).join(',')}, building scalable solutions and delivering high-impact results.${custom ? `\n\nKey highlights: ${custom}` : ''}
+
+I've attached my resume for more background on my projects and experience. I would love to connect for a brief chat to see if my background is a good fit.
+
+Best,
+
+${sig || name}`;
+
+    personaLivePreview.textContent = sampleEmail;
+  }
+
+  async function handleSaveProfile(e) {
+    if (e) e.preventDefault();
+    if (!profileForm) return;
+
+    if (saveProfileBtn) {
+      saveProfileBtn.disabled = true;
+      saveProfileBtn.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite">
+          <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+        </svg>
+        <span>Saving Persona...</span>
+      `;
+    }
+
+    const payload = {
+      preset_id: currentPresetId,
+      name: profileName ? profileName.value.trim() : '',
+      title: profileTitle ? profileTitle.value.trim() : '',
+      email: profileEmail ? profileEmail.value.trim() : '',
+      phone: profilePhone ? profilePhone.value.trim() : '',
+      portfolio: profilePortfolio ? profilePortfolio.value.trim() : '',
+      linkedin: profileLinkedin ? profileLinkedin.value.trim() : '',
+      github: profileGithub ? profileGithub.value.trim() : '',
+      target_roles: profileTargetRoles ? profileTargetRoles.value.trim() : '',
+      core_skills: profileCoreSkills ? profileCoreSkills.value.trim() : '',
+      custom_ai_instructions: profileCustomAiInstructions ? profileCustomAiInstructions.value.trim() : '',
+      signature: profileSignature ? profileSignature.value.trim() : ''
+    };
+
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        userProfile = data.profile;
+        if (profileRoleBadge) {
+          const p = rolePresets[currentPresetId];
+          profileRoleBadge.textContent = p ? p.name.split(' ')[0] : 'Custom';
+        }
+        showToast('🎉 AI Persona & Profile updated successfully!', 'success');
+      } else {
+        showToast(data.error || 'Failed to save profile', 'error');
+      }
+    } catch (err) {
+      showToast('Network error while saving profile', 'error');
+    } finally {
+      if (saveProfileBtn) {
+        saveProfileBtn.disabled = false;
+        saveProfileBtn.innerHTML = `
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          <span>Save Profile & Apply Changes</span>
+        `;
+      }
+    }
+  }
+
+  // Preset pill click listeners
+  if (presetPillsGrid) {
+    presetPillsGrid.addEventListener('click', (e) => {
+      const pill = e.target.closest('.preset-pill');
+      if (pill && pill.dataset.preset) {
+        selectPreset(pill.dataset.preset);
+      }
+    });
+  }
+
+  if (resetPresetBtn) {
+    resetPresetBtn.addEventListener('click', () => {
+      if (currentPresetId) selectPreset(currentPresetId);
+    });
+  }
+
+  if (autoGenerateSigBtn) {
+    autoGenerateSigBtn.addEventListener('click', () => {
+      generateSignatureFromFields();
+      updateLivePreview();
+      showToast('Generated signature from your profile info!', 'success');
+    });
+  }
+
+  if (profileForm) {
+    profileForm.addEventListener('submit', handleSaveProfile);
+  }
+
+  // Live preview update listeners
+  [profileName, profileTitle, profileCoreSkills, profileCustomAiInstructions, profileSignature].forEach(el => {
+    if (el) el.addEventListener('input', updateLivePreview);
+  });
+
+  // Resume upload in profile
+  if (profileUploadResumeBtn && profileResumeInput) {
+    profileUploadResumeBtn.addEventListener('click', () => profileResumeInput.click());
+    profileResumeInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const formData = new FormData();
+      formData.append('resume', file);
+      try {
+        const res = await fetch('/api/upload-resume', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          if (profileResumeTitle) profileResumeTitle.textContent = `📄 Attached: ${data.filename}`;
+          if (resumeFileName) resumeFileName.textContent = data.filename;
+          if (resumeStatus) resumeStatus.style.display = 'flex';
+          showToast(`Resume attached: ${data.filename}`, 'success');
+        } else {
+          showToast(data.error || 'Failed to upload resume', 'error');
+        }
+      } catch (err) {
+        showToast('Error uploading resume', 'error');
+      }
+    });
+  }
 
   // ── Steps ──
   function updateSteps(activeStep) {
