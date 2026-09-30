@@ -27,6 +27,9 @@ Thumbs.db
 # Server logs and runtime locks
 *.log
 auto_jobs/.autopilot.lock
+*.png
+*.jpg
+*.jpeg
 
 # Dynamic Auto-Pilot Runtime Data & Dropped Screenshots
 auto_jobs/*

@@ -222,41 +222,57 @@ async function draftPersonalizedEmail(jobData, resumeInfo) {
     ? `Hi ${jobData.contact_person.split(' ')[0]},`
     : (jobData.company_name && jobData.company_name !== 'null' ? `Hi ${jobData.company_name} Team,` : 'Hi there,');
 
-  const candidateRole = profile.title || 'Software Professional';
-  const candidateSkills = profile.core_skills || 'Modern Engineering & Problem Solving';
-  const customAiContext = profile.custom_ai_instructions ? `CANDIDATE CUSTOM CONTEXT & HIGHLIGHTS:\n${profile.custom_ai_instructions}\n` : '';
+  const candidateRole = profile.title || 'DevOps & Cloud Engineer';
+  const candidateSkills = profile.core_skills || 'AWS, Kubernetes, Docker, Terraform, CI/CD (GitHub Actions, ArgoCD, Jenkins), Prometheus & Grafana, Python, Linux';
+  const candidatePortfolio = profile.portfolio || 'https://ajayautade.com';
+  const customAiContext = profile.custom_ai_instructions ? `CANDIDATE CUSTOM CONTEXT & VERIFIED ACHIEVEMENTS:\n${profile.custom_ai_instructions}\n` : '';
   const customPromptRules = profile.custom_prompt_rules ? `CUSTOM PROMPT RULES:\n${profile.custom_prompt_rules}\n` : '';
 
-  const emailPrompt = `You are a talented, real-world professional (${candidateRole}) writing an authentic, direct, and conversational job outreach email to a hiring team.
+  const emailPrompt = `You are a talented, real-world professional (${profile.name || 'Ajay Autade'}, ${candidateRole}) writing a highly personalized, authentic, and direct job outreach email to a hiring team / recruiter.
 
-Write this email exactly like a real human professional would write it — crisp, natural, confident, and engaging.
+CANDIDATE PROFILE & VERIFIED PORTFOLIO (Live at ${candidatePortfolio}):
+- Name: ${profile.name || 'Er. Ajay Autade'}
+- Role: ${candidateRole}
+- Portfolio Website: ${candidatePortfolio} (recruiter can review live interactive architecture diagrams & live deployed projects)
+- Verified Hands-On Experience & Project Accomplishments:
+  * Cloud & IaC: Multi-region AWS Cloud Infrastructure (VPC, EC2, S3, IAM, NAT) automated end-to-end with modular Terraform.
+  * Container Orchestration: Docker containerization with multi-stage builds; Kubernetes deployments with Horizontal Pod Autoscaling (HPA, 2-10 pods) and ingress routing.
+  * CI/CD & GitOps: Built zero-touch CI/CD pipelines via GitHub Actions, Jenkins, and ArgoCD — reducing release cycle times by 60% (from 45m to 8m).
+  * Observability & SRE: Proactive monitoring using Prometheus metrics scraping, Alertmanager alerts, and custom Grafana health dashboards.
+  * DevSecOps: Automated vulnerability scanning using Trivy and static code security quality gates with SonarQube.
+  * Backend & Automation: Python (Flask/FastAPI REST APIs, automation scripts), Bash scripting for Linux sysadmin tasks.
 
-ANTI-AI RULES (MUST FOLLOW STRICTLY):
-1. NEVER use AI buzzwords or robotic clichés:
-   - NO "I am writing to express my enthusiastic interest"
-   - NO "I am thrilled/delighted to apply"
-   - NO "Having followed your company's impressive journey"
-   - NO "proven track record", "invaluable asset", "synergies", "esteemed organization", "tapestry", "beacon"
-   - NO "Furthermore", "Moreover", "In conclusion", "Additionally"
-2. TONE & STYLE:
-   - Talk professional-to-professional / engineer-to-recruiter: confident, direct, and approachable.
-   - Start naturally with "${greetingTarget}" and state the purpose in 1 clear sentence ("I saw your opening for ${jobData.job_title ? `the ${jobData.job_title} role` : 'your open role'} at ${jobData.company_name || 'your company'} and wanted to reach out directly.").
-   - Highlight 2-3 concrete, impressive achievements from the attached resume and candidate skills (${candidateSkills}).
-   - If candidate custom context is provided below, incorporate those key accomplishments naturally.
-   - Tie your actual hands-on skills naturally to what they are looking for without sounding scripted.
-   - Keep it short: 2 to 3 compact paragraphs (around 100-140 words total). Recruiters should be able to scan and read it in 15 seconds.
-   - Mention that your resume is attached for more details.
-   - Never use placeholder brackets like [Company] or [Position]. If details are missing, speak naturally about the team/role.
-3. SIGNATURE:
-   - Sign off with a natural closing ("Best,", "Thanks,", or "Best regards,") followed by the exact signature below.
-
-${customAiContext}${customPromptRules}
-JOB DETAILS:
+JOB DETAILS FROM POSTING:
 - Company: ${jobData.company_name || 'the team'}
 - Position: ${jobData.job_title || profile.title || 'Open Position'}
-- Key Requirements: ${(jobData.key_requirements || []).join(', ')}
-- Key Skills: ${(jobData.key_skills || []).join(', ')}
+- Key Requirements: ${(jobData.key_requirements || []).join(', ') || 'Cloud / Software Engineering'}
+- Key Skills: ${(jobData.key_skills || []).join(', ') || 'DevOps, Cloud, Automation'}
 - Contact Person: ${jobData.contact_person || ''}
+${customAiContext}${customPromptRules}
+
+MANDATORY INSTRUCTIONS FOR DYNAMIC PERSONALIZATION:
+1. DYNAMIC SKILL & PROJECT MATCHING (CRITICAL):
+   - Analyze the recruiter's exact Key Requirements and Key Skills.
+   - Pick the TOP 2-3 specific candidate skills/projects that directly solve what this company needs:
+     * If AWS / Terraform: Highlight multi-region Terraform IaC and automated cloud provisioning.
+     * If Kubernetes / Docker: Highlight containerizing microservices and Kubernetes auto-scaling (HPA).
+     * If CI/CD / Automation / Jenkins / ArgoCD: Highlight zero-touch GitOps deployment pipelines cutting release time by 60%.
+     * If Monitoring / Prometheus / Grafana / SRE: Highlight real-time metric tracking and custom Grafana dashboards.
+     * If DevSecOps / Security: Highlight container scanning with Trivy and SonarQube gates.
+     * If Python / Scripting / APIs: Highlight Python automation scripts and REST APIs.
+2. DIVERSE & NATURAL OPENING (NO REPETITIVE FORMULAS):
+   - DO NOT start every email with "I saw your opening for X and wanted to reach out directly". Vary the opening hook naturally based on the role and company context:
+     * Hook Example A: "I noticed ${jobData.company_name || 'your team'} is looking for a ${jobData.job_title || 'DevOps Engineer'} to help scale [specific tech from requirements], and wanted to connect."
+     * Hook Example B: "Given ${jobData.company_name || 'your team'}'s focus on [specific requirement e.g. AWS reliability / Kubernetes automation], my background in [matching skill A] and [matching skill B] aligns directly with your goals."
+     * Hook Example C: "I came across the ${jobData.job_title || 'opening'} at ${jobData.company_name || 'your company'} and wanted to reach out regarding how I can contribute to your [infrastructure / engineering] initiatives."
+3. CANDIDATE PORTFOLIO REFERENCE:
+   - Naturally mention that interactive architecture diagrams and live projects can be explored on the portfolio at ${candidatePortfolio}, alongside the attached resume.
+4. TONE & ANTI-AI RULES:
+   - Talk engineer-to-recruiter / professional-to-professional: confident, crisp, direct, and approachable.
+   - Absolutely NO robotic clichés ("I am writing to express my enthusiastic interest", "proven track record", "invaluable asset", "esteemed organization", "furthermore", "moreover").
+   - Length: 2 to 3 compact paragraphs (around 100-140 words total). Scannable in 15 seconds.
+5. SIGNATURE:
+   - End with a clean sign-off ("Best,", "Thanks,", or "Best regards,") followed by the exact signature below.
 
 MANDATORY SIGNATURE BLOCK (Place at the end):
 ${profile.signature}
@@ -264,7 +280,7 @@ ${profile.signature}
 Return ONLY valid JSON in this format:
 {
   "subject": "${jobData.job_title ? `${jobData.job_title} Application` : (profile.title ? `${profile.title} Application` : 'Job Application')} - ${profile.name}",
-  "body": "Natural, human-sounding email body ending with the exact signature block"
+  "body": "Natural, dynamic, tailored email body ending with the exact signature block"
 }`;
 
   const promptContents = [emailPrompt];
@@ -298,9 +314,12 @@ Return ONLY valid JSON in this format:
       ? `Hi ${jobData.contact_person.split(' ')[0]},`
       : (jobData.company_name && jobData.company_name !== 'null' ? `Hi ${jobData.company_name} Team,` : 'Hi there,');
 
+    const primarySkill = (jobData.key_skills && jobData.key_skills[0]) || 'AWS cloud automation and Kubernetes';
+    const secondarySkill = (jobData.key_skills && jobData.key_skills[1]) || 'CI/CD pipeline optimization';
+
     return {
       subject: `${jobData.job_title ? `${jobData.job_title} Application` : (profile.title ? `${profile.title} Application` : 'Job Application')} - ${profile.name}`,
-      body: `${fallbackGreeting}\n\nI saw your opening for ${jobData.job_title ? `the ${jobData.job_title} role` : 'the open position'} at ${jobData.company_name || 'your company'} and wanted to reach out directly.\n\nIn my recent work, I have focused on ${profile.core_skills || 'engineering robust solutions'}, delivering high quality and scalable results.\n\nI've attached my resume for more background on my projects and experience. I would love to connect for a brief chat to learn more about what you're building and see if my background is a good fit.\n\nBest,\n\n${profile.signature}`
+      body: `${fallbackGreeting}\n\nI noticed ${jobData.company_name || 'your team'} is looking for a ${jobData.job_title || profile.title || 'DevOps Engineer'} and wanted to reach out directly.\n\nMy background focuses on ${primarySkill} and ${secondarySkill}. In my recent projects, I've automated multi-region cloud infrastructure using Terraform, built zero-touch CI/CD pipelines cutting deployment cycles by 60%, and configured real-time monitoring with Prometheus & Grafana.\n\nI've attached my resume for reference, and you can also explore my live project architectures on my portfolio at ${candidatePortfolio}. I'd love to connect for a brief chat to see how I can add value to your team.\n\nBest,\n\n${profile.signature}`
     };
   }
 }

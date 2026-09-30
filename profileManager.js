@@ -10,9 +10,9 @@ const ROLE_PRESETS = {
     name: 'DevOps & Cloud Engineer',
     title: 'DevOps Engineer | Cloud & Platform Specialist',
     target_roles: 'DevOps Engineer, Cloud Engineer, Site Reliability Engineer, SRE, Platform Engineer, Infrastructure Engineer, Cloud Architect',
-    core_skills: 'AWS, Kubernetes, Docker, Terraform, CI/CD (GitHub Actions, Jenkins, ArgoCD), Prometheus & Grafana, Linux Sysadmin, Python, Bash Scripting',
-    custom_ai_instructions: 'Highlight experience automating multi-region AWS cloud infrastructure using Terraform, managing containerized Kubernetes applications with HPA, building high-speed automated CI/CD pipelines, and proactive monitoring with Prometheus & Grafana.',
-    custom_prompt_rules: 'Mention reducing deployment times and eliminating manual infrastructure overhead. Keep tone confident, direct, and engineer-to-engineer.'
+    core_skills: 'AWS (VPC, EC2, S3, IAM, EKS), Kubernetes, Docker, Terraform, CI/CD (GitHub Actions, Jenkins, ArgoCD), Prometheus & Grafana, DevSecOps (Trivy, SonarQube), Linux, Python, Bash',
+    custom_ai_instructions: 'Highlight verified hands-on projects featured on portfolio (https://ajayautade.com): (1) Zero-touch MLOps CI/CD pipeline using GitHub Actions & ArgoCD on AWS EKS cutting release times by 60% and auto-scaling via Kubernetes HPA (2 to 10 pods); (2) Modular multi-region AWS Infrastructure as Code with Terraform; (3) Proactive observability using Prometheus & Grafana; (4) DevSecOps security scanning with SonarQube & Trivy. Match specific skills dynamically to the recruiter\'s exact job requirements.',
+    custom_prompt_rules: 'Directly connect candidate skills to what the job description requires. Keep tone confident, direct, engineer-to-recruiter, and authentic. Invite them to view live architecture demos at https://ajayautade.com.'
   },
   fullstack: {
     id: 'fullstack',
@@ -20,7 +20,7 @@ const ROLE_PRESETS = {
     title: 'Full Stack Developer | React, Node.js & TypeScript',
     target_roles: 'Full Stack Developer, Full Stack Engineer, Web Developer, Software Engineer, MERN Stack Developer',
     core_skills: 'React, Node.js, Express, TypeScript, Next.js, PostgreSQL, MongoDB, REST & GraphQL APIs, Tailwind CSS, Docker, Git',
-    custom_ai_instructions: 'Highlight designing scalable full-stack applications, building clean and responsive frontends with React/Next.js, designing robust REST/GraphQL APIs in Node.js/Express, and database schema design.',
+    custom_ai_instructions: 'Highlight designing scalable full-stack applications, building clean and responsive frontends with React/Next.js, designing robust REST/GraphQL APIs in Node.js/Express, database schema design, and portfolio projects on https://ajayautade.com.',
     custom_prompt_rules: 'Focus on shipping high-impact end-to-end features, clean code, responsive UX, and optimized backend query performance.'
   },
   backend: {
@@ -28,7 +28,7 @@ const ROLE_PRESETS = {
     name: 'Backend Developer / API Engineer',
     title: 'Backend Engineer | Distributed Systems & APIs',
     target_roles: 'Backend Developer, Backend Engineer, Node.js Developer, Python Developer, Java Engineer, Go Developer, API Engineer',
-    core_skills: 'Node.js, Python, Java, Go, Microservices, REST APIs, GraphQL, PostgreSQL, MySQL, Redis, Kafka, Docker, System Design',
+    core_skills: 'Node.js, Python (Flask/FastAPI), Java, Go, Microservices, REST APIs, GraphQL, PostgreSQL, MySQL, Redis, Kafka, Docker, System Design',
     custom_ai_instructions: 'Highlight designing high-throughput REST/gRPC microservices, caching architectures with Redis, database indexing & query optimization, and reliable backend distributed workflows.',
     custom_prompt_rules: 'Emphasize API reliability, low-latency performance, clean modular architecture, and scalability.'
   },
@@ -99,7 +99,7 @@ function generateDefaultSignature(name, title, phone, email, portfolio, linkedin
 
 function getDefaultProfile() {
   const name = process.env.YOUR_NAME || 'Er. Ajay Autade';
-  const title = process.env.YOUR_TITLE || 'DevOps Engineer | Computer Science Engineer';
+  const title = process.env.YOUR_TITLE || 'DevOps Engineer | Cloud & Platform Specialist';
   const email = process.env.YOUR_EMAIL || process.env.GMAIL_USER || 'ajayautade2@gmail.com';
   const phone = process.env.YOUR_PHONE || '+91 9545034120';
   const portfolio = process.env.YOUR_PORTFOLIO || 'https://ajayautade.com';
@@ -120,11 +120,11 @@ function getDefaultProfile() {
     linkedin,
     github,
     target_roles: 'DevOps Engineer, Cloud Engineer, SRE, Platform Engineer, Infrastructure Engineer',
-    core_skills: 'AWS, Kubernetes, Docker, Terraform, CI/CD (GitHub Actions, Jenkins, ArgoCD), Prometheus & Grafana, Linux, Python/Bash',
-    custom_ai_instructions: 'Highlight hands-on experience automating cloud infrastructure on AWS with Terraform, orchestrating containerized apps on Kubernetes, and cutting deployment times with automated CI/CD pipelines.',
+    core_skills: 'AWS (VPC, EC2, S3, IAM, EKS), Kubernetes, Docker, Terraform, CI/CD (GitHub Actions, Jenkins, ArgoCD), Prometheus & Grafana, DevSecOps (SonarQube, Trivy), Linux Sysadmin, Python, Bash Scripting',
+    custom_ai_instructions: 'Highlight real-world hands-on project accomplishments from portfolio (https://ajayautade.com): (1) Zero-touch MLOps CI/CD pipeline using GitHub Actions & ArgoCD on AWS EKS cutting deployment times by 60% and auto-scaling via Kubernetes HPA (2-10 pods); (2) Multi-region AWS Cloud Infrastructure automated with modular Terraform; (3) Proactive monitoring with Prometheus & Grafana; (4) DevSecOps vulnerability scanning with SonarQube & Trivy. Match specific project skills directly to the job description.',
     signature: defaultSig,
     email_tone: 'conversational', // conversational | direct | formal
-    custom_prompt_rules: 'Keep email between 100-140 words. Never use robotic AI clichés like "enthusiastic interest" or "proven track record".',
+    custom_prompt_rules: 'Directly highlight matching skills for each specific job requirement. Keep email between 100-140 words. Never use repetitive AI clichés like "enthusiastic interest" or "proven track record". Refer recruiter to https://ajayautade.com for interactive architecture diagrams and live projects.',
     updated_at: new Date().toISOString()
   };
 }

@@ -623,24 +623,32 @@ Return ONLY valid JSON:
       ? `Hi ${jobData.contact_person.split(' ')[0]},`
       : `Hi ${jobData.company_name && jobData.company_name !== 'null' ? jobData.company_name + ' Team' : 'there'},`;
 
-    const customAiContext = profile.custom_ai_instructions ? `\nCandidate Specific Context: ${profile.custom_ai_instructions}` : '';
+    const candidatePortfolio = profile.portfolio || 'https://ajayautade.com';
+    const customAiContext = profile.custom_ai_instructions ? `\nCandidate Specific Context & Projects: ${profile.custom_ai_instructions}` : '';
 
-    const prompt = `You are a talented, real-world professional (${profile.title || 'Engineer'}) writing an authentic, direct, and conversational WhatsApp message to a recruiter regarding a job opening.
+    const prompt = `You are a talented, real-world professional (${profile.name || 'Ajay Autade'}, ${profile.title || 'DevOps & Cloud Engineer'}) writing an authentic, direct, and conversational WhatsApp message to a recruiter regarding a job opening.
 
-Write a clean, concise, human-written WhatsApp message.
+PORTFOLIO & LIVE CONTEXT:
+- Portfolio Website: ${candidatePortfolio}
+- Core Hands-On Pillars: AWS (VPC, EC2, S3, IAM, EKS), Terraform IaC, Docker & Kubernetes HPA, CI/CD (GitHub Actions, Jenkins, ArgoCD), Prometheus/Grafana monitoring, Python.
+
+JOB DETAILS:
+- Role: ${jobData.job_title || profile.title || 'open position'}
+- Company: ${jobData.company_name || 'your company'}
+- Key Requirements: ${(jobData.key_requirements || []).join(', ') || 'Cloud & DevOps Engineering'}
+- Key Skills: ${(jobData.key_skills || []).join(', ') || 'DevOps, Cloud, CI/CD'}${customAiContext}
 
 CRITICAL GUIDELINES:
-- Keep it concise (under 90 words total) — optimized for WhatsApp instant messaging.
+- Keep it concise (under 85 words total) — perfectly formatted for WhatsApp instant messaging.
 - Warm, polite, confident, and natural tone (NO robotic/AI clichés).
-- Mention the job role ("${jobData.job_title || profile.title || 'open role'}") and company ("${jobData.company_name || 'your company'}").
-- Highlight candidate's core strengths: ${profile.core_skills || 'problem solving and software development'}.${customAiContext}
-- Offer to share resume PDF and invite a brief introductory chat.
+- Dynamically mention 1-2 specific technical matches between the candidate's verified background and the job requirements (e.g. AWS & Terraform IaC, Docker & Kubernetes HPA, or automated CI/CD pipelines).
+- Mention that interactive project architectures can be seen on ${candidatePortfolio} and offer to share the resume PDF.
 - Sign off with:
-  Best regards,
-  ${profile.name}
-  ${profile.title}
-  📱 ${profile.phone || ''}
-  🌐 ${profile.portfolio || ''} | 💼 ${profile.linkedin || ''}
+Best regards,
+${profile.name}
+${profile.title}
+📱 ${profile.phone || '+91 9545034120'}
+🌐 ${candidatePortfolio}
 - Output ONLY the plain message text with natural line breaks.`;
 
     const promptContents = [prompt];
@@ -665,24 +673,20 @@ CRITICAL GUIDELINES:
       msg = msg.replace(/^```[a-z]*\n/i, '').replace(/\n```$/g, '').trim();
       return msg;
     } catch (err) {
-      const contactLine = [
-        profile.phone ? `📱 ${profile.phone}` : '',
-        profile.portfolio ? `🌐 ${profile.portfolio}` : '',
-        profile.linkedin ? `💼 ${profile.linkedin}` : ''
-      ].filter(Boolean).join('\n');
-
+      const primarySkill = (jobData.key_skills && jobData.key_skills[0]) || 'AWS cloud automation & Kubernetes';
       return `${recipientGreeting}
 
-Hope you're doing well! I saw your opening for the ${jobData.job_title || profile.title || 'open'} role at ${jobData.company_name || 'your team'} and wanted to connect directly.
+Hope you're doing well! I saw your opening for the ${jobData.job_title || profile.title || 'DevOps Engineer'} role at ${jobData.company_name || 'your team'} and wanted to connect directly.
 
-I'm ${profile.name}, a ${profile.title || 'Software Professional'} with hands-on experience in ${profile.core_skills || 'software development'}. My background aligns well with the requirements for this role.
+I'm ${profile.name}, specializing in ${primarySkill} with hands-on experience automating cloud infrastructure with Terraform and building high-speed CI/CD pipelines.
 
-I'd love to share my updated resume and discuss how I can contribute. Are you available for a brief chat?
+You can view my live project architectures on ${candidatePortfolio}. I'd love to share my resume and discuss how I can contribute. Are you open for a brief chat?
 
 Best regards,
 ${profile.name}
 ${profile.title}
-${contactLine}`;
+📱 ${profile.phone || '+91 9545034120'}
+🌐 ${candidatePortfolio}`;
     }
   }
 
