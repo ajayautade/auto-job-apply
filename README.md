@@ -28,34 +28,40 @@ Auto Job Apply AI is **100% customizable for any candidate and job domain**. Whe
 * **Live AI Persona Preview**: See in real-time how the AI will introduce you in outbound cold emails.
 * **Auto-Generated & Editable Signatures**: Clickable links, phone numbers, and professional formatting.
 
-### 2. 🤖 Continuous Auto-Pilot Folder Watcher (Zero-Click)
+### 2. 🎯 AI Recruiter & HR Lead Finder & Cold Outreach Engine
+* **Target Company Lead Discovery**: Enter single or bulk target companies/domains (e.g. *Razorpay, Postman, Hasura, Cred, Swiggy, Zepto, Atlassian*).
+* **Corporate Email Pattern Intelligence**: Predicts and resolves verified HR, Talent Acquisition Lead, Technical Recruiter, and Hiring Manager contact points (`first.last@company.com`, `careers@company.com`, `talent@company.com`, etc.).
+* **Automated Cold Outreach with Resume**: Drafts company-specific cold emails highlighting candidate's verified skills and portfolio (`https://ajayautade.com`), attaches the candidate's PDF resume, and dispatches via Gmail SMTP.
+* **Dual Dispatch Modes**: Choose between **Review & 1-Click Dispatch / Batch Send** or **Autonomous Instant Dispatch**.
+
+### 3. 🤖 Continuous Auto-Pilot Folder Watcher (Zero-Click)
 * **Drop & Forget**: Simply save or drag job posting screenshots (PNG, JPG, WEBP, HEIC) into the `auto_jobs/` directory.
 * **Real-Time Watcher**: Event-driven file system monitoring (`chokidar`) detects and processes incoming job postings in milliseconds.
 * **Auto-Cleanup**: Automatically removes processed screenshots after successful delivery to keep your workspace organized.
 
-### 3. 🧠 Multimodal AI Vision & Resume-Context Ingestion
+### 4. 🧠 Multimodal AI Vision & Resume-Context Ingestion
 * **Deep OCR & Role Extraction**: Powered by Google Gemini Vision models (`gemini-3.1-flash-lite`, `gemini-3.5-flash`, `gemini-3.7-flash` with automatic fallback).
 * **Multi-Screenshot Support**: Seamlessly analyzes long scrolling job postings spanning multiple screenshots.
 * **Resume-Aware Personalization**: Ingests your candidate resume PDF directly into the Gemini AI prompt to extract genuine work achievements, specific frameworks, and quantifiable metrics.
 
-### 4. ✍️ Anti-AI Human Writing Engine
+### 5. ✍️ Anti-AI Human Writing Engine
 * **Zero Robotic Clichés**: Strict prompt constraints prevent dead giveaways like *"I am thrilled to apply"*, *"tapestry"*, *"beacon"*, *"invaluable asset"*, or *"proven track record"*.
-* **Authentic Tone**: Concise (100–140 words), direct, and written engineer-to-engineer / professional-to-recruiter.
+* **Authentic Tone**: Concise (100–140 words), direct, and written engineer-to-engineer / professional-to-recruiter with live project links to your portfolio.
 
-### 5. 💬 Recruiter WhatsApp Outreach Pipeline
+### 6. 💬 Recruiter WhatsApp Outreach Pipeline
 * **Mobile Number Extraction**: Automatically detects recruiter phone numbers from job screenshots (supports Indian standard 10-digit, `+91`, `0` prefixes, and international formats).
 * **AI WhatsApp Pitch Generation**: Drafts concise, conversational WhatsApp messages (<90 words) tailored to the role.
 * **1-Click WhatsApp Dispatch**: Preview, edit, and click **`🚀 Open in WhatsApp`** to launch WhatsApp Web/Desktop (`https://wa.me/...`) with prefilled outreach text.
 
-### 6. 🛡️ Role-Aware Duplicate Protection
+### 7. 🛡️ Role-Aware Duplicate Protection
 * **Smart Recruiter Memory**: Distinguishes between spamming the same job vs. applying to multiple distinct openings posted by the same agency/recruiter.
 * **In-Flight Lock Protection**: Prevents race conditions during rapid multi-file drops.
 
-### 7. ⏱️ Outbound Throttling & Humanized Jitter
+### 8. ⏱️ Outbound Throttling & Humanized Jitter
 * **Sender Reputation Guard**: Enforces daily send limits (default: 150/day, customizable via UI or `.env`) to safeguard Gmail accounts.
-* **Dynamic Jitter**: Injects natural 15s–35s delays between emails to mimic human sending cadence.
+* **Dynamic Jitter**: Injects natural delays between emails to mimic human sending cadence.
 
-### 8. 📅 Smart 4-Day Automated Follow-Up Cadence
+### 9. 📅 Smart 4-Day Automated Follow-Up Cadence
 * **Automated Scheduling**: Automatically queues a polite, brief follow-up reminder 4 business days after initial application.
 * **Due Date Dispatcher**: Auto-dispatches due follow-ups with re-attached resumes.
 

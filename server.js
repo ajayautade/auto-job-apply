@@ -380,9 +380,10 @@ async function sendEmailHelper({ to, subject, body, cc, bcc, resumePath, resumeO
 }
 
 // ──────────────────────────────────────────────
-// Initialize Auto-Pilot Folder Watcher
+// Initialize Auto-Pilot Folder Watcher & Lead Finder
 // ──────────────────────────────────────────────
 const { initAutoPilot } = require('./autoPilot');
+const { initLeadFinder } = require('./leadFinder');
 
 const autoPilot = initAutoPilot({
   watchDir: path.resolve(process.env.WATCH_FOLDER || './auto_jobs'),
@@ -392,6 +393,15 @@ const autoPilot = initAutoPilot({
   draftPersonalizedEmail,
   sendEmailFn: sendEmailHelper,
   getMimeTypeForPath
+});
+
+const leadFinder = initLeadFinder({
+  watchDir: path.resolve(process.env.WATCH_FOLDER || './auto_jobs'),
+  generateWithFallback,
+  parseJsonFromText,
+  getSavedResume,
+  sendEmailFn: sendEmailHelper,
+  autoPilot
 });
 
 // ──────────────────────────────────────────────
@@ -798,6 +808,76 @@ app.post('/api/whatsapp/generate-message', async (req, res) => {
     res.json({ success: true, message: draft });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ──────────────────────────────────────────────
+// API: Recruiter Cold Outreach & Lead Finder Endpoints
+// ──────────────────────────────────────────────
+app.get('/api/leads', (req, res) => {
+  try {
+    const leads = leadFinder.getLeads ? leadFinder.getLeads() : [];
+    const stats = leadFinder.getLeadStats ? leadFinder.getLeadStats() : { total: 0, pending: 0, sent: 0, dismissed: 0 };
+    res.json({ success: true, leads, stats });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch leads', details: err.message });
+  }
+});
+
+app.post('/api/leads/find', async (req, res) => {
+  try {
+    const { companies, company_text, target_role, location, custom_notes, auto_send } = req.body;
+    const result = await leadFinder.findRecruiterLeads({
+      companies,
+      companyText: company_text,
+      targetRole: target_role,
+      location,
+      customNotes: custom_notes,
+      autoSend: !!auto_send
+    });
+    res.json(result);
+  } catch (err) {
+    console.error('[API] /api/leads/find error:', err.message);
+    res.status(500).json({ error: 'Failed to find recruiter leads', details: err.message });
+  }
+});
+
+app.post('/api/leads/:id/send', async (req, res) => {
+  try {
+    const result = await leadFinder.sendLeadEmail(req.params.id);
+    res.json(result);
+  } catch (err) {
+    console.error('[API] /api/leads/:id/send error:', err.message);
+    res.status(500).json({ error: 'Failed to send cold email to lead', details: err.message });
+  }
+});
+
+app.post('/api/leads/batch-send', async (req, res) => {
+  try {
+    const { lead_ids } = req.body;
+    const result = await leadFinder.batchSendLeads(lead_ids);
+    res.json(result);
+  } catch (err) {
+    console.error('[API] /api/leads/batch-send error:', err.message);
+    res.status(500).json({ error: 'Failed to batch send leads', details: err.message });
+  }
+});
+
+app.put('/api/leads/:id', (req, res) => {
+  try {
+    const updated = leadFinder.updateLead(req.params.id, req.body);
+    res.json({ success: true, lead: updated });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update lead', details: err.message });
+  }
+});
+
+app.delete('/api/leads/:id', (req, res) => {
+  try {
+    const result = leadFinder.deleteLead(req.params.id);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete lead', details: err.message });
   }
 });
 

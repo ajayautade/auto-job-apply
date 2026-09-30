@@ -42,6 +42,7 @@ auto_jobs/applied_recipients.json
 auto_jobs/daily_stats.json
 auto_jobs/follow_ups.json
 auto_jobs/whatsapp_leads.json
+auto_jobs/recruiter_leads.json
 
 # User Uploads & Uploaded Resumes
 public/uploads/*

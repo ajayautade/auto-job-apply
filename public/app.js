@@ -6,17 +6,43 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── Element References ──
   const tabAutoPilot = document.getElementById('tabAutoPilot');
   const tabManual = document.getElementById('tabManual');
+  const tabLeads = document.getElementById('tabLeads');
   const tabFollowUps = document.getElementById('tabFollowUps');
   const tabWhatsApp = document.getElementById('tabWhatsApp');
   const tabProfile = document.getElementById('tabProfile');
   const autopilotSection = document.getElementById('autopilotSection');
   const manualSectionContainer = document.getElementById('manualSectionContainer');
+  const leadsSection = document.getElementById('leadsSection');
   const followupsSection = document.getElementById('followupsSection');
   const whatsappSection = document.getElementById('whatsappSection');
   const profileSection = document.getElementById('profileSection');
+  const leadsTabBadge = document.getElementById('leadsTabBadge');
   const followUpsTabBadge = document.getElementById('followUpsTabBadge');
   const whatsAppTabBadge = document.getElementById('whatsAppTabBadge');
   const profileRoleBadge = document.getElementById('profileRoleBadge');
+
+  // Lead Finder Form & Control Elements
+  const leadsSearchForm = document.getElementById('leadsSearchForm');
+  const leadsCompanyInput = document.getElementById('leadsCompanyInput');
+  const leadsTargetRole = document.getElementById('leadsTargetRole');
+  const leadsLocation = document.getElementById('leadsLocation');
+  const leadsAutoSendCheckbox = document.getElementById('leadsAutoSendCheckbox');
+  const discoverLeadsBtn = document.getElementById('discoverLeadsBtn');
+  const leadsTotalCount = document.getElementById('leadsTotalCount');
+  const leadsPendingCount = document.getElementById('leadsPendingCount');
+  const leadsSentCount = document.getElementById('leadsSentCount');
+  const filterAllCount = document.getElementById('filterAllCount');
+  const filterPendingCount = document.getElementById('filterPendingCount');
+  const filterSentCount = document.getElementById('filterSentCount');
+  const leadsFilterPills = document.getElementById('leadsFilterPills');
+  const leadsBulkBar = document.getElementById('leadsBulkBar');
+  const selectAllLeadsCheckbox = document.getElementById('selectAllLeadsCheckbox');
+  const selectedLeadsLabel = document.getElementById('selectedLeadsLabel');
+  const batchSendLeadsBtn = document.getElementById('batchSendLeadsBtn');
+  const selectedCountNum = document.getElementById('selectedCountNum');
+  const leadsListContainer = document.getElementById('leadsListContainer');
+  const leadsEmptyState = document.getElementById('leadsEmptyState');
+  const refreshLeadsBtn = document.getElementById('refreshLeadsBtn');
 
   // Profile Form Elements
   const profileForm = document.getElementById('profileForm');
@@ -151,13 +177,17 @@ document.addEventListener('DOMContentLoaded', () => {
   let historyData = [];
   let followUpsData = [];
   let whatsAppLeadsData = [];
+  let leadsData = [];
+  let currentLeadFilter = 'ALL';
+  let selectedLeadIds = new Set();
   let userProfile = null;
   let rolePresets = {};
   let currentPresetId = 'devops';
 
-  // ── Mode Switcher (5 Tabs) ──
+  // ── Mode Switcher (6 Tabs) ──
   tabAutoPilot.addEventListener('click', () => switchMode('autopilot'));
   tabManual.addEventListener('click', () => switchMode('manual'));
+  if (tabLeads) tabLeads.addEventListener('click', () => switchMode('leads'));
   if (tabFollowUps) tabFollowUps.addEventListener('click', () => switchMode('followups'));
   if (tabWhatsApp) tabWhatsApp.addEventListener('click', () => switchMode('whatsapp'));
   if (tabProfile) tabProfile.addEventListener('click', () => switchMode('profile'));
@@ -165,12 +195,14 @@ document.addEventListener('DOMContentLoaded', () => {
   function switchMode(mode) {
     tabAutoPilot.classList.toggle('active', mode === 'autopilot');
     tabManual.classList.toggle('active', mode === 'manual');
+    if (tabLeads) tabLeads.classList.toggle('active', mode === 'leads');
     if (tabFollowUps) tabFollowUps.classList.toggle('active', mode === 'followups');
     if (tabWhatsApp) tabWhatsApp.classList.toggle('active', mode === 'whatsapp');
     if (tabProfile) tabProfile.classList.toggle('active', mode === 'profile');
 
     autopilotSection.style.display = mode === 'autopilot' ? 'flex' : 'none';
     manualSectionContainer.style.display = mode === 'manual' ? 'block' : 'none';
+    if (leadsSection) leadsSection.style.display = mode === 'leads' ? 'flex' : 'none';
     if (followupsSection) followupsSection.style.display = mode === 'followups' ? 'flex' : 'none';
     if (whatsappSection) whatsappSection.style.display = mode === 'whatsapp' ? 'flex' : 'none';
     if (profileSection) profileSection.style.display = mode === 'profile' ? 'flex' : 'none';
@@ -182,6 +214,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (mode === 'autopilot') {
       loadHistory();
       loadDailyStats();
+    } else if (mode === 'leads') {
+      loadLeads();
     } else if (mode === 'followups') {
       loadFollowUps();
     } else if (mode === 'whatsapp') {
@@ -900,18 +934,416 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // ── 🎯 Recruiter Cold Outreach & Lead Finder Pipeline ──
+  async function loadLeads() {
+    try {
+      const res = await fetch('/api/leads');
+      const data = await res.json();
+      leadsData = data.leads || [];
+      const stats = data.stats || { total: 0, pending: 0, sent: 0, dismissed: 0 };
+
+      // Update badge count
+      if (leadsTabBadge) {
+        if (stats.pending > 0) {
+          leadsTabBadge.style.display = 'inline-block';
+          leadsTabBadge.textContent = `${stats.pending} pending`;
+        } else {
+          leadsTabBadge.style.display = 'inline-block';
+          leadsTabBadge.textContent = `${stats.total} leads`;
+        }
+      }
+
+      // Update stats numbers
+      if (leadsTotalCount) leadsTotalCount.textContent = stats.total;
+      if (leadsPendingCount) leadsPendingCount.textContent = stats.pending;
+      if (leadsSentCount) leadsSentCount.textContent = stats.sent;
+
+      if (filterAllCount) filterAllCount.textContent = stats.total;
+      if (filterPendingCount) filterPendingCount.textContent = stats.pending;
+      if (filterSentCount) filterSentCount.textContent = stats.sent;
+
+      renderLeadsList(leadsData);
+    } catch (e) {
+      console.error('Failed to load recruiter leads:', e);
+    }
+  }
+
+  function renderLeadsList(leads) {
+    if (!leadsListContainer || !leadsEmptyState) return;
+
+    let filtered = leads || [];
+    if (currentLeadFilter === 'PENDING') {
+      filtered = filtered.filter(l => l.status === 'DISCOVERED' || l.status === 'PENDING');
+    } else if (currentLeadFilter === 'SENT') {
+      filtered = filtered.filter(l => l.status === 'SENT');
+    }
+
+    if (filtered.length === 0) {
+      leadsEmptyState.style.display = 'flex';
+      leadsListContainer.querySelectorAll('.lead-card').forEach(c => c.remove());
+      if (leadsBulkBar) leadsBulkBar.style.display = 'none';
+      return;
+    }
+
+    leadsEmptyState.style.display = 'none';
+    leadsListContainer.querySelectorAll('.lead-card').forEach(c => c.remove());
+
+    // Update bulk bar visibility
+    const pendingLeads = filtered.filter(l => l.status !== 'SENT' && l.status !== 'DISMISSED');
+    if (leadsBulkBar) {
+      leadsBulkBar.style.display = pendingLeads.length > 0 ? 'flex' : 'none';
+      updateBulkSelectCount();
+    }
+
+    filtered.forEach(lead => {
+      const card = document.createElement('div');
+      const isSent = lead.status === 'SENT';
+      card.className = `lead-card ${isSent ? 'lead-sent' : ''}`;
+      card.id = `leadCard_${lead.id}`;
+
+      const initial = (lead.company_name || 'C').charAt(0).toUpperCase();
+      const domainClean = (lead.domain || '').replace(/^https?:\/\//, '').replace(/^www\./, '');
+      const domainUrl = domainClean ? `https://${domainClean}` : '#';
+
+      const confidenceBadge = lead.confidence === 'HIGH'
+        ? '<span class="lead-badge badge-confidence-high">⚡ High Confidence</span>'
+        : '<span class="lead-badge badge-confidence-med">🔍 Pattern Match</span>';
+
+      const statusBadge = isSent
+        ? `<span class="lead-badge badge-status-sent">✅ Sent ${lead.sent_at ? new Date(lead.sent_at).toLocaleDateString() : ''}</span>`
+        : '<span class="lead-badge badge-status-pending">Ready to Send</span>';
+
+      const isChecked = selectedLeadIds.has(lead.id);
+
+      card.innerHTML = `
+        <div class="lead-card-header">
+          <div class="lead-company-info">
+            ${!isSent ? `<input type="checkbox" class="lead-select-checkbox" data-id="${lead.id}" ${isChecked ? 'checked' : ''} style="width: 16px; height: 16px; accent-color: #10b981; cursor: pointer;">` : ''}
+            <div class="lead-avatar">${initial}</div>
+            <div class="lead-title-box">
+              <div class="lead-company-name">
+                <span>${escapeHtml(lead.company_name)}</span>
+                ${domainClean ? `<a href="${domainUrl}" target="_blank" rel="noopener noreferrer" class="lead-domain-link">🌐 ${escapeHtml(domainClean)}</a>` : ''}
+              </div>
+              <div class="lead-recruiter-title">${escapeHtml(lead.recruiter_name || 'Talent Acquisition Team')} • ${escapeHtml(lead.recruiter_title || 'Recruiter')}</div>
+            </div>
+          </div>
+          <div class="lead-header-badges">
+            ${confidenceBadge}
+            ${statusBadge}
+          </div>
+        </div>
+
+        <div class="lead-contact-row">
+          <div class="lead-email-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <span>Direct Email:</span>
+          </div>
+          <div class="lead-email-value">${escapeHtml(lead.email)}</div>
+        </div>
+
+        <div class="lead-preview-collapse">
+          <div class="lead-preview-header" data-id="${lead.id}">
+            <span>📝 Cold Email Draft: "${escapeHtml(lead.email_subject || 'Job Inquiry')}"</span>
+            <span class="preview-toggle-icon">▼</span>
+          </div>
+          <div class="lead-preview-body" id="leadBody_${lead.id}" style="display: none;">
+            <div style="font-weight: 600; color: #a5b4fc; margin-bottom: 8px;">Subject: ${escapeHtml(lead.email_subject || '')}</div>
+            <textarea class="form-textarea lead-email-editor" data-id="${lead.id}" rows="7" style="font-size: 13px; line-height: 1.55; width: 100%; background: rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.1);">${escapeHtml(lead.email_body || '')}</textarea>
+          </div>
+        </div>
+
+        <div class="lead-actions-row">
+          <div class="lead-actions-left">
+            ${!isSent ? `
+              <button type="button" class="btn btn-primary btn-sm send-lead-btn" data-id="${lead.id}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                <span>Send Cold Email with Resume</span>
+              </button>
+            ` : `
+              <span style="font-size: 12.5px; color: #4ade80; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                Dispatched with Resume PDF
+              </span>
+            `}
+            <button type="button" class="btn btn-secondary btn-sm copy-lead-pitch-btn" data-id="${lead.id}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              <span>Copy Pitch</span>
+            </button>
+          </div>
+          <div class="lead-actions-right">
+            <button type="button" class="btn btn-icon-sm dismiss-lead-btn" data-id="${lead.id}" title="Dismiss lead" style="color: #94a3b8;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          </div>
+        </div>
+      `;
+
+      leadsListContainer.appendChild(card);
+    });
+
+    // Wire individual lead events
+    wireLeadCardEvents();
+  }
+
+  function wireLeadCardEvents() {
+    // Toggle preview accordion
+    leadsListContainer.querySelectorAll('.lead-preview-header').forEach(header => {
+      header.addEventListener('click', () => {
+        const id = header.getAttribute('data-id');
+        const body = document.getElementById(`leadBody_${id}`);
+        const icon = header.querySelector('.preview-toggle-icon');
+        if (body) {
+          const isOpen = body.style.display !== 'none';
+          body.style.display = isOpen ? 'none' : 'block';
+          if (icon) icon.textContent = isOpen ? '▼' : '▲';
+        }
+      });
+    });
+
+    // Wire single send button
+    leadsListContainer.querySelectorAll('.send-lead-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner" style="width: 12px; height: 12px; margin-right: 6px;"></span> Sending...';
+
+        try {
+          const res = await fetch(`/api/leads/${id}/send`, { method: 'POST' });
+          const data = await res.json();
+          if (data.success) {
+            showToast(`Cold email dispatched to ${data.email}!`, 'success');
+            loadLeads();
+            loadDailyStats();
+          } else {
+            showToast(`Failed: ${data.error || 'Could not send email'}`, 'error');
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+          }
+        } catch (err) {
+          showToast(`Send error: ${err.message}`, 'error');
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+        }
+      });
+    });
+
+    // Wire copy pitch button
+    leadsListContainer.querySelectorAll('.copy-lead-pitch-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        const lead = leadsData.find(l => l.id === id);
+        if (lead && lead.email_body) {
+          navigator.clipboard.writeText(lead.email_body).then(() => {
+            showToast('Cold email body copied to clipboard!', 'success');
+          });
+        }
+      });
+    });
+
+    // Wire dismiss lead button
+    leadsListContainer.querySelectorAll('.dismiss-lead-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        try {
+          await fetch(`/api/leads/${id}`, { method: 'DELETE' });
+          showToast('Lead dismissed', 'info');
+          loadLeads();
+        } catch (err) {
+          showToast('Failed to dismiss lead', 'error');
+        }
+      });
+    });
+
+    // Wire textarea live save
+    leadsListContainer.querySelectorAll('.lead-email-editor').forEach(editor => {
+      editor.addEventListener('change', async () => {
+        const id = editor.getAttribute('data-id');
+        const updatedBody = editor.value;
+        try {
+          await fetch(`/api/leads/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email_body: updatedBody })
+          });
+        } catch (err) {}
+      });
+    });
+
+    // Wire checkbox selection
+    leadsListContainer.querySelectorAll('.lead-select-checkbox').forEach(chk => {
+      chk.addEventListener('change', () => {
+        const id = chk.getAttribute('data-id');
+        if (chk.checked) {
+          selectedLeadIds.add(id);
+        } else {
+          selectedLeadIds.delete(id);
+        }
+        updateBulkSelectCount();
+      });
+    });
+  }
+
+  function updateBulkSelectCount() {
+    if (!selectedCountNum || !selectAllLeadsCheckbox) return;
+    selectedCountNum.textContent = selectedLeadIds.size;
+    if (batchSendLeadsBtn) {
+      batchSendLeadsBtn.disabled = selectedLeadIds.size === 0;
+    }
+    const pendingCheckboxes = leadsListContainer.querySelectorAll('.lead-select-checkbox');
+    selectAllLeadsCheckbox.checked = pendingCheckboxes.length > 0 && selectedLeadIds.size === pendingCheckboxes.length;
+  }
+
+  // ── Wire Lead Finder Search & Controls ──
+  if (leadsSearchForm) {
+    leadsSearchForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const company_text = leadsCompanyInput ? leadsCompanyInput.value.trim() : '';
+      const target_role = leadsTargetRole ? leadsTargetRole.value.trim() : '';
+      const location = leadsLocation ? leadsLocation.value.trim() : '';
+      const auto_send = leadsAutoSendCheckbox ? leadsAutoSendCheckbox.checked : false;
+
+      if (!company_text) {
+        showToast('Please enter at least one target company name or domain', 'warning');
+        return;
+      }
+
+      const originalBtnHtml = discoverLeadsBtn.innerHTML;
+      discoverLeadsBtn.disabled = true;
+      discoverLeadsBtn.innerHTML = '<span class="spinner" style="width: 14px; height: 14px; margin-right: 6px;"></span> Finding Recruiters & Drafting Emails...';
+
+      try {
+        const res = await fetch('/api/leads/find', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            company_text,
+            target_role,
+            location,
+            auto_send
+          })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          showToast(`Discovered ${data.discovered_count} recruiter contacts (${data.new_saved_count} new)!`, 'success');
+          loadLeads();
+          if (auto_send) {
+            loadDailyStats();
+          }
+        } else {
+          showToast(`Discovery failed: ${data.error || 'Unknown error'}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Discovery error: ${err.message}`, 'error');
+      } finally {
+        discoverLeadsBtn.disabled = false;
+        discoverLeadsBtn.innerHTML = originalBtnHtml;
+      }
+    });
+  }
+
+  // Quick preset chips
+  document.querySelectorAll('.leads-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const companies = chip.getAttribute('data-companies');
+      if (leadsCompanyInput && companies) {
+        leadsCompanyInput.value = companies;
+        leadsCompanyInput.focus();
+        showToast('Target companies filled into search box', 'info');
+      }
+    });
+  });
+
+  // Filter pills
+  if (leadsFilterPills) {
+    leadsFilterPills.querySelectorAll('.filter-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        leadsFilterPills.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        currentLeadFilter = pill.getAttribute('data-filter') || 'ALL';
+        renderLeadsList(leadsData);
+      });
+    });
+  }
+
+  // Select all checkbox
+  if (selectAllLeadsCheckbox) {
+    selectAllLeadsCheckbox.addEventListener('change', () => {
+      const checkboxes = leadsListContainer.querySelectorAll('.lead-select-checkbox');
+      checkboxes.forEach(chk => {
+        chk.checked = selectAllLeadsCheckbox.checked;
+        const id = chk.getAttribute('data-id');
+        if (selectAllLeadsCheckbox.checked) {
+          selectedLeadIds.add(id);
+        } else {
+          selectedLeadIds.delete(id);
+        }
+      });
+      updateBulkSelectCount();
+    });
+  }
+
+  // Batch Send Selected button
+  if (batchSendLeadsBtn) {
+    batchSendLeadsBtn.addEventListener('click', async () => {
+      const ids = Array.from(selectedLeadIds);
+      if (ids.length === 0) return;
+
+      const origText = batchSendLeadsBtn.innerHTML;
+      batchSendLeadsBtn.disabled = true;
+      batchSendLeadsBtn.innerHTML = '<span class="spinner" style="width: 12px; height: 12px; margin-right: 6px;"></span> Dispatching Emails with Resume...';
+
+      try {
+        const res = await fetch('/api/leads/batch-send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lead_ids: ids })
+        });
+        const data = await res.json();
+        if (data.sent_count > 0) {
+          showToast(`Successfully dispatched ${data.sent_count} cold emails with resume attached!`, 'success');
+        } else {
+          showToast(`Batch send completed: ${data.failed_count} failed`, 'warning');
+        }
+        selectedLeadIds.clear();
+        loadLeads();
+        loadDailyStats();
+      } catch (err) {
+        showToast(`Batch send error: ${err.message}`, 'error');
+      } finally {
+        batchSendLeadsBtn.disabled = false;
+        batchSendLeadsBtn.innerHTML = origText;
+      }
+    });
+  }
+
+  if (refreshLeadsBtn) {
+    refreshLeadsBtn.addEventListener('click', () => {
+      loadLeads();
+      showToast('Recruiter leads refreshed', 'info');
+    });
+  }
+
   // ── Initialize ──
   checkSettings();
   loadHistory();
   loadDailyStats();
+  loadLeads();
   loadFollowUps();
   loadWhatsAppLeads();
 
-  // Auto-poll history, daily stats, followups, and whatsapp leads periodically
+  // Auto-poll history, daily stats, leads, followups, and whatsapp leads periodically
   setInterval(() => {
     if (autopilotSection && autopilotSection.style.display !== 'none') {
       loadHistory();
       loadDailyStats();
+    } else if (leadsSection && leadsSection.style.display !== 'none') {
+      loadLeads();
     } else if (followupsSection && followupsSection.style.display !== 'none') {
       loadFollowUps();
     } else if (whatsappSection && whatsappSection.style.display !== 'none') {
