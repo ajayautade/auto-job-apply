@@ -351,12 +351,88 @@
     <!-- RECRUITER & HR COLD OUTREACH SECTION -->
     <!-- ═══════════════════════════════════════════════ -->
     <section class="leads-section" id="leadsSection" style="display: none;">
-      <!-- Hero Discovery Card -->
+      <!-- ⚡ AUTONOMOUS DAILY 100 DEVOPS CAMPAIGN HERO CARD -->
+      <div class="card devops-campaign-card">
+        <div class="campaign-card-header">
+          <div class="campaign-title-area">
+            <span class="campaign-pill">⚡ 1-Click Autonomous Outbound</span>
+            <h2 class="campaign-title">Daily 100 DevOps Cold Mail Campaign</h2>
+            <p class="campaign-desc">Pre-curated with 300+ Top Tech Unicorns, Cloud Startups & SaaS leaders hiring for DevOps, Cloud, SRE & Platform roles. Dispatches customized cold emails with resume attached at safe human cadence. Zero typing needed.</p>
+          </div>
+          <div class="campaign-action-area">
+            <button type="button" class="btn btn-primary btn-lg" id="startDailyCampaignBtn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); font-weight: 700; box-shadow: 0 0 24px rgba(16, 185, 129, 0.4);">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <span>🚀 Launch Today's 100 Cold Mails</span>
+            </button>
+            <button type="button" class="btn btn-danger btn-sm" id="stopDailyCampaignBtn" style="display: none;">
+              <span>⏹️ Stop Campaign</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Live Campaign Status Bar -->
+        <div class="campaign-status-panel" id="campaignStatusPanel">
+          <div class="campaign-metrics-row">
+            <div class="campaign-metric">
+              <span class="metric-val text-success" id="campContactedNum">0</span>
+              <span class="metric-lbl">Contacted So Far</span>
+            </div>
+            <div class="campaign-metric">
+              <span class="metric-val text-primary" id="campRemainingNum">300+</span>
+              <span class="metric-lbl">Uncontacted in Queue</span>
+            </div>
+            <div class="campaign-metric">
+              <span class="metric-val text-warning" id="campTodaySentNum">0/100</span>
+              <span class="metric-lbl">Today's Progress</span>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="campaign-progress-box" id="campaignProgressBox" style="display: none;">
+            <div class="campaign-progress-header">
+              <span id="campaignProgressStatus">Processing campaign...</span>
+              <span id="campaignProgressPercentage">0%</span>
+            </div>
+            <div class="quota-progress-track">
+              <div class="quota-progress-fill" id="campaignProgressBar" style="width: 0%; background: linear-gradient(90deg, #10b981, #06b6d4);"></div>
+            </div>
+            <div class="campaign-current-log" id="campaignCurrentLog">Initializing...</div>
+          </div>
+        </div>
+
+        <!-- Curated Database Quick Peek -->
+        <div class="campaign-companies-peek">
+          <div class="peek-header">
+            <span>✨ Included Curated DevOps & Cloud Tech Companies:</span>
+            <span class="peek-sub">Auto-queues next uncontacted batch every day</span>
+          </div>
+          <div class="peek-chips-row">
+            <span class="peek-chip">Razorpay</span>
+            <span class="peek-chip">Postman</span>
+            <span class="peek-chip">Hasura</span>
+            <span class="peek-chip">BrowserStack</span>
+            <span class="peek-chip">Zepto</span>
+            <span class="peek-chip">Cred</span>
+            <span class="peek-chip">Groww</span>
+            <span class="peek-chip">Zerodha</span>
+            <span class="peek-chip">Swiggy</span>
+            <span class="peek-chip">Zomato</span>
+            <span class="peek-chip">PhonePe</span>
+            <span class="peek-chip">Meesho</span>
+            <span class="peek-chip">Atlassian</span>
+            <span class="peek-chip">Datadog</span>
+            <span class="peek-chip">Snowflake</span>
+            <span class="peek-chip">+ 285 more</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Custom Company Search Card (Optional) -->
       <div class="card leads-hero-card">
         <div class="leads-hero-header">
-          <div class="leads-hero-badge">🎯 Recruiter & HR Lead Finder</div>
-          <h2 class="leads-hero-title">Find Recruiter Emails & Cold Outreach with Resume</h2>
-          <p class="leads-hero-desc">Enter target companies or tech domains. AI discovers verified HR, Talent Acquisition & Hiring Manager contact points, crafts personalized cold pitches tailored to your skills and portfolio, and dispatches your resume in 1-click or autonomously.</p>
+          <div class="leads-hero-badge">🔍 Manual & Custom Company Search</div>
+          <h2 class="leads-hero-title">Custom Company Recruiter Search</h2>
+          <p class="leads-hero-desc">Want to target a specific company not in the curated list? Enter custom company names or domains below.</p>
         </div>
 
         <!-- Search Form Container -->

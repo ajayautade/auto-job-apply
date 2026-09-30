@@ -2985,5 +2985,161 @@ body {
   gap: 8px;
 }
 
+/* ── ⚡ Autonomous Daily 100 DevOps Campaign Card Styles ── */
+.devops-campaign-card {
+  background: linear-gradient(135deg, rgba(16, 24, 39, 0.95) 0%, rgba(20, 30, 48, 0.9) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 35px rgba(16, 185, 129, 0.15);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.campaign-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.campaign-title-area {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 650px;
+}
+
+.campaign-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  color: #34d399;
+  font-size: 11.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  width: fit-content;
+}
+
+.campaign-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.3px;
+}
+
+.campaign-desc {
+  font-size: 14px;
+  color: #cbd5e1;
+  line-height: 1.5;
+}
+
+.campaign-action-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.campaign-status-panel {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.campaign-metrics-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.campaign-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.campaign-metric .metric-val {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.campaign-metric .metric-lbl {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.campaign-progress-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.campaign-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.campaign-current-log {
+  font-size: 12px;
+  color: #34d399;
+  font-family: var(--font-mono, monospace);
+}
+
+.campaign-companies-peek {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.peek-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.peek-sub {
+  font-size: 11.5px;
+  color: #6ee7b7;
+}
+
+.peek-chips-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.peek-chip {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  font-size: 11.5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+
 
 

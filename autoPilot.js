@@ -277,17 +277,29 @@ function initAutoPilot({
     return null;
   }
 
-  function markRecipientAsApplied(rawEmailText, jobData) {
+  function markRecipientAsApplied(rawEmailText, jobData = {}, maybeRole = '') {
+    if (!rawEmailText) return;
     const emails = extractAllEmails(rawEmailText);
     const currentRegistry = getRecipientRegistry();
     const timestamp = new Date().toISOString();
+
+    let compName = 'Company';
+    let roleTitle = 'DevOps Engineer';
+
+    if (typeof jobData === 'string') {
+      compName = jobData || 'Company';
+      roleTitle = typeof maybeRole === 'string' && maybeRole ? maybeRole : 'DevOps Engineer';
+    } else if (jobData && typeof jobData === 'object') {
+      compName = jobData.company_name || jobData.company || 'Company';
+      roleTitle = jobData.job_title || jobData.target_role || jobData.role || 'DevOps Engineer';
+    }
 
     for (const email of emails) {
       const list = sentEmailMap.get(email) || [];
       const newEntry = {
         timestamp,
-        company_name: jobData.company_name || 'Company',
-        job_title: jobData.job_title || 'Position'
+        company_name: compName,
+        job_title: roleTitle
       };
       list.push(newEntry);
       sentEmailMap.set(email, list);

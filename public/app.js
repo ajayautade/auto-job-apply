@@ -44,6 +44,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const leadsEmptyState = document.getElementById('leadsEmptyState');
   const refreshLeadsBtn = document.getElementById('refreshLeadsBtn');
 
+  // Autonomous Daily 100 Campaign Elements
+  const startDailyCampaignBtn = document.getElementById('startDailyCampaignBtn');
+  const stopDailyCampaignBtn = document.getElementById('stopDailyCampaignBtn');
+  const campContactedNum = document.getElementById('campContactedNum');
+  const campRemainingNum = document.getElementById('campRemainingNum');
+  const campTodaySentNum = document.getElementById('campTodaySentNum');
+  const campaignProgressBox = document.getElementById('campaignProgressBox');
+  const campaignProgressStatus = document.getElementById('campaignProgressStatus');
+  const campaignProgressPercentage = document.getElementById('campaignProgressPercentage');
+  const campaignProgressBar = document.getElementById('campaignProgressBar');
+  const campaignCurrentLog = document.getElementById('campaignCurrentLog');
+
   // Profile Form Elements
   const profileForm = document.getElementById('profileForm');
   const profileName = document.getElementById('profileName');
@@ -1325,7 +1337,89 @@ document.addEventListener('DOMContentLoaded', () => {
   if (refreshLeadsBtn) {
     refreshLeadsBtn.addEventListener('click', () => {
       loadLeads();
-      showToast('Recruiter leads refreshed', 'info');
+      loadCampaignStatus();
+      showToast('Recruiter leads & campaign refreshed', 'info');
+    });
+  }
+
+  // ── 🚀 Autonomous Daily 100 DevOps Campaign ──
+  async function loadCampaignStatus() {
+    try {
+      const res = await fetch('/api/campaign/status');
+      const data = await res.json();
+      if (!data.success) return;
+
+      const stats = data.stats || {};
+      if (campContactedNum) campContactedNum.textContent = stats.contacted_total || 0;
+      if (campRemainingNum) campRemainingNum.textContent = stats.remaining_uncontacted || 0;
+      if (campTodaySentNum) campTodaySentNum.textContent = `${stats.today_sent || 0}/100`;
+
+      const prog = data.progress || {};
+      if (data.is_running) {
+        if (startDailyCampaignBtn) startDailyCampaignBtn.style.display = 'none';
+        if (stopDailyCampaignBtn) stopDailyCampaignBtn.style.display = 'inline-flex';
+        if (campaignProgressBox) campaignProgressBox.style.display = 'flex';
+
+        const pct = prog.target > 0 ? Math.round((prog.current / prog.target) * 100) : 0;
+        if (campaignProgressStatus) campaignProgressStatus.textContent = `🚀 Processing: ${prog.current_company || 'Connecting...'} (${prog.current}/${prog.target})`;
+        if (campaignProgressPercentage) campaignProgressPercentage.textContent = `${pct}%`;
+        if (campaignProgressBar) campaignProgressBar.style.width = `${pct}%`;
+        if (campaignCurrentLog) campaignCurrentLog.textContent = prog.last_log || 'Dispatched cold email with resume...';
+      } else {
+        if (startDailyCampaignBtn) startDailyCampaignBtn.style.display = 'inline-flex';
+        if (stopDailyCampaignBtn) stopDailyCampaignBtn.style.display = 'none';
+        if (prog.completed_at && campaignProgressBox) {
+          campaignProgressBox.style.display = 'flex';
+          if (campaignProgressStatus) campaignProgressStatus.textContent = '✅ Daily Campaign Completed';
+          if (campaignProgressPercentage) campaignProgressPercentage.textContent = '100%';
+          if (campaignProgressBar) campaignProgressBar.style.width = '100%';
+          if (campaignCurrentLog) campaignCurrentLog.textContent = prog.last_log || 'Finished today’s cold outreach.';
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load campaign status:', e);
+    }
+  }
+
+  if (startDailyCampaignBtn) {
+    startDailyCampaignBtn.addEventListener('click', async () => {
+      const origText = startDailyCampaignBtn.innerHTML;
+      startDailyCampaignBtn.disabled = true;
+      startDailyCampaignBtn.innerHTML = '<span class="spinner" style="width: 14px; height: 14px; margin-right: 6px;"></span> Starting 100 Campaign...';
+
+      try {
+        const res = await fetch('/api/campaign/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ target_count: 100 })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`🚀 Launched daily 100 DevOps campaign! Dispatched to ${data.target_count} curated companies.`, 'success');
+          loadCampaignStatus();
+          loadLeads();
+        } else {
+          showToast(`Could not launch campaign: ${data.error || data.message}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Campaign launch error: ${err.message}`, 'error');
+      } finally {
+        startDailyCampaignBtn.disabled = false;
+        startDailyCampaignBtn.innerHTML = origText;
+      }
+    });
+  }
+
+  if (stopDailyCampaignBtn) {
+    stopDailyCampaignBtn.addEventListener('click', async () => {
+      try {
+        const res = await fetch('/api/campaign/stop', { method: 'POST' });
+        const data = await res.json();
+        showToast(data.message || 'Campaign paused', 'info');
+        loadCampaignStatus();
+      } catch (err) {
+        showToast(`Error stopping campaign: ${err.message}`, 'error');
+      }
     });
   }
 
@@ -1334,16 +1428,18 @@ document.addEventListener('DOMContentLoaded', () => {
   loadHistory();
   loadDailyStats();
   loadLeads();
+  loadCampaignStatus();
   loadFollowUps();
   loadWhatsAppLeads();
 
-  // Auto-poll history, daily stats, leads, followups, and whatsapp leads periodically
+  // Auto-poll history, daily stats, leads, campaign, followups, and whatsapp leads periodically
   setInterval(() => {
     if (autopilotSection && autopilotSection.style.display !== 'none') {
       loadHistory();
       loadDailyStats();
     } else if (leadsSection && leadsSection.style.display !== 'none') {
       loadLeads();
+      loadCampaignStatus();
     } else if (followupsSection && followupsSection.style.display !== 'none') {
       loadFollowUps();
     } else if (whatsappSection && whatsappSection.style.display !== 'none') {

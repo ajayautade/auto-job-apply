@@ -882,6 +882,50 @@ app.delete('/api/leads/:id', (req, res) => {
 });
 
 // ──────────────────────────────────────────────
+// API: Autonomous Daily 100 DevOps Campaign Endpoints
+// ──────────────────────────────────────────────
+app.get('/api/campaign/status', (req, res) => {
+  try {
+    const status = leadFinder.getCampaignStatus ? leadFinder.getCampaignStatus() : {};
+    res.json({ success: true, ...status });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to get campaign status', details: err.message });
+  }
+});
+
+app.get('/api/campaign/companies', (req, res) => {
+  try {
+    const companies = leadFinder.getCuratedDevOpsCompanies ? leadFinder.getCuratedDevOpsCompanies() : [];
+    res.json({ success: true, companies });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to get curated companies', details: err.message });
+  }
+});
+
+app.post('/api/campaign/start', async (req, res) => {
+  try {
+    const { target_count, delay_ms } = req.body;
+    const result = await leadFinder.startDaily100DevOpsCampaign({
+      targetCount: target_count || 100,
+      delayMs: delay_ms || 3000
+    });
+    res.json(result);
+  } catch (err) {
+    console.error('[API] /api/campaign/start error:', err.message);
+    res.status(500).json({ error: 'Failed to start campaign', details: err.message });
+  }
+});
+
+app.post('/api/campaign/stop', (req, res) => {
+  try {
+    const result = leadFinder.stopDailyCampaign();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to stop campaign', details: err.message });
+  }
+});
+
+// ──────────────────────────────────────────────
 // API: Profile & AI Persona Configuration
 // ──────────────────────────────────────────────
 app.get('/api/profile', (req, res) => {
