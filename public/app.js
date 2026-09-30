@@ -9,13 +9,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const tabFollowUps = document.getElementById('tabFollowUps');
   const tabWhatsApp = document.getElementById('tabWhatsApp');
   const tabProfile = document.getElementById('tabProfile');
-  const tabGuide = document.getElementById('tabGuide');
   const autopilotSection = document.getElementById('autopilotSection');
   const manualSectionContainer = document.getElementById('manualSectionContainer');
   const followupsSection = document.getElementById('followupsSection');
   const whatsappSection = document.getElementById('whatsappSection');
   const profileSection = document.getElementById('profileSection');
-  const guideSection = document.getElementById('guideSection');
   const followUpsTabBadge = document.getElementById('followUpsTabBadge');
   const whatsAppTabBadge = document.getElementById('whatsAppTabBadge');
   const profileRoleBadge = document.getElementById('profileRoleBadge');
@@ -42,7 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const profileResumeTitle = document.getElementById('profileResumeTitle');
   const profileUploadResumeBtn = document.getElementById('profileUploadResumeBtn');
   const profileResumeInput = document.getElementById('profileResumeInput');
-  const guideGoToProfileBtn = document.getElementById('guideGoToProfileBtn');
 
   const watchFolderPath = document.getElementById('watchFolderPath');
   const copyPathBtn = document.getElementById('copyPathBtn');
@@ -158,17 +155,12 @@ document.addEventListener('DOMContentLoaded', () => {
   let rolePresets = {};
   let currentPresetId = 'devops';
 
-  // ── Mode Switcher (6 Tabs) ──
+  // ── Mode Switcher (5 Tabs) ──
   tabAutoPilot.addEventListener('click', () => switchMode('autopilot'));
   tabManual.addEventListener('click', () => switchMode('manual'));
   if (tabFollowUps) tabFollowUps.addEventListener('click', () => switchMode('followups'));
   if (tabWhatsApp) tabWhatsApp.addEventListener('click', () => switchMode('whatsapp'));
   if (tabProfile) tabProfile.addEventListener('click', () => switchMode('profile'));
-  if (tabGuide) tabGuide.addEventListener('click', () => switchMode('guide'));
-
-  if (guideGoToProfileBtn) {
-    guideGoToProfileBtn.addEventListener('click', () => switchMode('profile'));
-  }
 
   function switchMode(mode) {
     tabAutoPilot.classList.toggle('active', mode === 'autopilot');
@@ -176,14 +168,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tabFollowUps) tabFollowUps.classList.toggle('active', mode === 'followups');
     if (tabWhatsApp) tabWhatsApp.classList.toggle('active', mode === 'whatsapp');
     if (tabProfile) tabProfile.classList.toggle('active', mode === 'profile');
-    if (tabGuide) tabGuide.classList.toggle('active', mode === 'guide');
 
     autopilotSection.style.display = mode === 'autopilot' ? 'flex' : 'none';
     manualSectionContainer.style.display = mode === 'manual' ? 'block' : 'none';
     if (followupsSection) followupsSection.style.display = mode === 'followups' ? 'flex' : 'none';
     if (whatsappSection) whatsappSection.style.display = mode === 'whatsapp' ? 'flex' : 'none';
     if (profileSection) profileSection.style.display = mode === 'profile' ? 'flex' : 'none';
-    if (guideSection) guideSection.style.display = mode === 'guide' ? 'flex' : 'none';
 
     loadingSection.style.display = 'none';
     reviewSection.style.display = 'none';
