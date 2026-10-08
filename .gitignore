@@ -44,13 +44,25 @@ auto_jobs/follow_ups.json
 auto_jobs/whatsapp_leads.json
 auto_jobs/recruiter_leads.json
 
-# User Uploads & Uploaded Resumes
+# User Uploads & Uploaded Resumes (NEVER COMMIT PERSONAL RESUMES)
 public/uploads/*
 !public/uploads/.gitkeep
 !public/uploads/resumes/
 public/uploads/resumes/*
 !public/uploads/resumes/.gitkeep
 public/uploads/resumes/.latest_resume.json
+*.pdf
+*.docx
+*.doc
 
-# Local User Profile Data
+# Local User Profile Data & Contacts Databases (NEVER COMMIT)
 user_profile.json
+*.csv
+*.csv.bak
+*.tsv
+*.xlsx
+*.xls
+
+# Temporary Scratch & Artifacts
+scratch/
+.kilo/

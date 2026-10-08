@@ -81,7 +81,7 @@ const ROLE_PRESETS = {
 
 function generateDefaultSignature(name, title, phone, email, portfolio, linkedin) {
   const parts = [];
-  parts.push(name || 'Er. Ajay Autade');
+  parts.push(name || 'Candidate Name');
   if (title) parts.push(title);
   
   const contactLine = [];
@@ -98,13 +98,13 @@ function generateDefaultSignature(name, title, phone, email, portfolio, linkedin
 }
 
 function getDefaultProfile() {
-  const name = process.env.YOUR_NAME || 'Er. Ajay Autade';
+  const name = process.env.YOUR_NAME || 'Candidate Name';
   const title = process.env.YOUR_TITLE || 'DevOps Engineer | Cloud & Platform Specialist';
-  const email = process.env.YOUR_EMAIL || process.env.GMAIL_USER || 'ajayautade2@gmail.com';
-  const phone = process.env.YOUR_PHONE || '+91 9545034120';
-  const portfolio = process.env.YOUR_PORTFOLIO || 'https://ajayautade.com';
-  const linkedin = process.env.YOUR_LINKEDIN || 'https://linkedin.com/in/ajayautadepatil';
-  const github = process.env.YOUR_GITHUB || 'https://github.com/ajayautade';
+  const email = process.env.YOUR_EMAIL || process.env.GMAIL_USER || 'candidate@example.com';
+  const phone = process.env.YOUR_PHONE || '+1 (555) 019-2834';
+  const portfolio = process.env.YOUR_PORTFOLIO || 'https://yourportfolio.com';
+  const linkedin = process.env.YOUR_LINKEDIN || 'https://www.linkedin.com/in/yourprofile';
+  const github = process.env.YOUR_GITHUB || 'https://github.com/yourusername';
 
   const defaultSig = process.env.EMAIL_SIGNATURE
     ? process.env.EMAIL_SIGNATURE.replace(/\\n/g, '\n')
@@ -121,10 +121,10 @@ function getDefaultProfile() {
     github,
     target_roles: 'DevOps Engineer, Cloud Engineer, SRE, Platform Engineer, Infrastructure Engineer',
     core_skills: 'AWS (VPC, EC2, S3, IAM, EKS), Kubernetes, Docker, Terraform, CI/CD (GitHub Actions, Jenkins, ArgoCD), Prometheus & Grafana, DevSecOps (SonarQube, Trivy), Linux Sysadmin, Python, Bash Scripting',
-    custom_ai_instructions: 'Highlight real-world hands-on project accomplishments from portfolio (https://ajayautade.com): (1) Zero-touch MLOps CI/CD pipeline using GitHub Actions & ArgoCD on AWS EKS cutting deployment times by 60% and auto-scaling via Kubernetes HPA (2-10 pods); (2) Multi-region AWS Cloud Infrastructure automated with modular Terraform; (3) Proactive monitoring with Prometheus & Grafana; (4) DevSecOps vulnerability scanning with SonarQube & Trivy. Match specific project skills directly to the job description.',
+    custom_ai_instructions: `Highlight real-world hands-on project accomplishments from portfolio (${portfolio}): (1) Zero-touch MLOps CI/CD pipeline using GitHub Actions & ArgoCD on AWS EKS cutting deployment times by 60% and auto-scaling via Kubernetes HPA (2-10 pods); (2) Multi-region AWS Cloud Infrastructure automated with modular Terraform; (3) Proactive monitoring with Prometheus & Grafana; (4) DevSecOps vulnerability scanning with SonarQube & Trivy. Match specific project skills directly to the job description.`,
     signature: defaultSig,
     email_tone: 'conversational', // conversational | direct | formal
-    custom_prompt_rules: 'Directly highlight matching skills for each specific job requirement. Keep email between 100-140 words. Never use repetitive AI clichés like "enthusiastic interest" or "proven track record". Refer recruiter to https://ajayautade.com for interactive architecture diagrams and live projects.',
+    custom_prompt_rules: `Directly highlight matching skills for each specific job requirement. Keep email between 100-140 words. Never use repetitive AI clichés like "enthusiastic interest" or "proven track record". Refer recruiter to ${portfolio} for interactive architecture diagrams and live projects.`,
     updated_at: new Date().toISOString()
   };
 }
