@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { getUserProfile } = require('./profileManager');
 const { DEVOPS_COMPANIES } = require('./devopsCompanyDatabase');
+const { validateEmailDeliverability } = require('./bounceManager');
 
 function initLeadFinder({
   watchDir,
@@ -13,13 +14,14 @@ function initLeadFinder({
 }) {
   const rootDir = watchDir || path.resolve('./auto_jobs');
   const leadsFile = path.join(rootDir, 'recruiter_leads.json');
+  const hrProgressFile = path.join(rootDir, 'hr_contacts_progress.json');
 
   if (!fs.existsSync(rootDir)) {
     fs.mkdirSync(rootDir, { recursive: true });
   }
 
   // ──────────────────────────────────────────────
-  // Storage & Retrieval
+  // Storage & Retrieval for Recruiter Leads
   // ──────────────────────────────────────────────
   function getLeads() {
     try {
@@ -51,6 +53,172 @@ function initLeadFinder({
   }
 
   // ──────────────────────────────────────────────
+  // HR CONTACTS CSV PARSER & PROGRESS TRACKER
+  // ──────────────────────────────────────────────
+  const CSV_PATHS = [
+    path.join(__dirname, 'hr_contacts.csv'),
+    path.join(process.cwd(), 'hr_contacts.csv')
+  ];
+
+  function getCSVFilePath() {
+    for (const p of CSV_PATHS) {
+      if (fs.existsSync(p)) return p;
+    }
+    return CSV_PATHS[0];
+  }
+
+  function parseCSVContent(text) {
+    if (!text) return [];
+    const lines = [];
+    let row = [];
+    let inQuotes = false;
+    let currentField = '';
+
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      const nextChar = text[i + 1];
+
+      if (char === '"' && inQuotes && nextChar === '"') {
+        currentField += '"';
+        i++;
+      } else if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        row.push(currentField.trim());
+        currentField = '';
+      } else if ((char === '\r' || char === '\n') && !inQuotes) {
+        if (char === '\r' && nextChar === '\n') i++;
+        row.push(currentField.trim());
+        if (row.some(f => f.length > 0)) lines.push(row);
+        row = [];
+        currentField = '';
+      } else {
+        currentField += char;
+      }
+    }
+    if (currentField.length > 0 || row.length > 0) {
+      row.push(currentField.trim());
+      if (row.some(f => f.length > 0)) lines.push(row);
+    }
+
+    if (lines.length === 0) return [];
+    const headers = lines[0].map(h => h.replace(/^["\s]+|["\s]+$/g, ''));
+    const records = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const obj = {};
+      headers.forEach((h, idx) => {
+        let val = lines[i][idx] || '';
+        val = val.replace(/^["\s]+|["\s]+$/g, '');
+        obj[h] = val;
+      });
+      if (obj.Email && obj.Email.includes('@')) {
+        records.push({
+          id: `hr_${i}`,
+          index: i,
+          name: obj.Name || 'Hiring Leader',
+          email: obj.Email.toLowerCase().trim(),
+          title: obj.Title || 'Head HR / Talent Acquisition',
+          company: obj.Company ? obj.Company.replace(/[,]+$/, '').trim() : 'Tech Organization'
+        });
+      }
+    }
+    return records;
+  }
+
+  function getHRProgress() {
+    try {
+      if (fs.existsSync(hrProgressFile)) {
+        return JSON.parse(fs.readFileSync(hrProgressFile, 'utf8'));
+      }
+    } catch (e) {
+      console.warn('[LeadFinder] Could not read hr_contacts_progress.json:', e.message);
+    }
+    return {
+      sent_emails: {},
+      last_batch_run_date: null,
+      today_sent_count: 0
+    };
+  }
+
+  function saveHRProgress(progress) {
+    try {
+      fs.writeFileSync(hrProgressFile, JSON.stringify(progress, null, 2));
+    } catch (e) {
+      console.error('[LeadFinder] Failed to save hr_contacts_progress.json:', e.message);
+    }
+  }
+
+  let cachedHRContacts = null;
+  let cachedHRMtime = 0;
+  function getRawHRContacts() {
+    const csvPath = getCSVFilePath();
+    if (fs.existsSync(csvPath)) {
+      try {
+        const stats = fs.statSync(csvPath);
+        if (cachedHRContacts && cachedHRContacts.length > 0 && cachedHRMtime === stats.mtimeMs) {
+          return cachedHRContacts;
+        }
+        const content = fs.readFileSync(csvPath, 'utf8');
+        cachedHRContacts = parseCSVContent(content);
+        cachedHRMtime = stats.mtimeMs;
+        console.log(`[LeadFinder] 📋 Loaded ${cachedHRContacts.length} HR contacts from ${csvPath}`);
+        return cachedHRContacts;
+      } catch (e) {
+        console.error(`[LeadFinder] Error reading ${csvPath}:`, e.message);
+      }
+    }
+    return [];
+  }
+
+  function getEnrichedHRContacts() {
+    const raw = getRawHRContacts();
+    const progress = getHRProgress();
+    const sentMap = progress.sent_emails || {};
+
+    return raw.map(c => {
+      const sentInfo = sentMap[c.email];
+      return {
+        ...c,
+        status: sentInfo ? 'SENT' : 'PENDING',
+        sent_at: sentInfo ? sentInfo.sent_at : null,
+        message_id: sentInfo ? sentInfo.message_id : null,
+        error: sentInfo ? sentInfo.error : null
+      };
+    });
+  }
+
+  function getHRContactsList({ page = 1, limit = 50, search = '', status = 'ALL' } = {}) {
+    let list = getEnrichedHRContacts();
+
+    if (status && status !== 'ALL') {
+      list = list.filter(c => c.status === status);
+    }
+
+    if (search && search.trim().length > 0) {
+      const q = search.toLowerCase().trim();
+      list = list.filter(c => 
+        c.name.toLowerCase().includes(q) ||
+        c.email.toLowerCase().includes(q) ||
+        c.title.toLowerCase().includes(q) ||
+        c.company.toLowerCase().includes(q)
+      );
+    }
+
+    const total = list.length;
+    const startIndex = (page - 1) * limit;
+    const paginated = list.slice(startIndex, startIndex + limit);
+
+    return {
+      total,
+      page,
+      limit,
+      total_pages: Math.ceil(total / limit) || 1,
+      contacts: paginated
+    };
+  }
+
+  // ──────────────────────────────────────────────
   // Campaign State for Autonomous Daily 100 Outbound
   // ──────────────────────────────────────────────
   let campaignState = {
@@ -58,10 +226,13 @@ function initLeadFinder({
     shouldStop: false,
     current: 0,
     target: 100,
-    currentCompany: null,
+    currentContact: null,
     startedAt: null,
     completedAt: null,
-    lastLog: 'Ready to launch daily DevOps campaign',
+    source: 'CSV_LIST', // 'CSV_LIST' or 'AI_ONLINE_FALLBACK'
+    batchNumber: 1,
+    totalBatches: 19,
+    lastLog: 'Ready to launch daily HR cold outreach campaign',
     results: []
   };
 
@@ -87,36 +258,53 @@ function initLeadFinder({
   }
 
   function getCampaignStatus() {
+    const allHR = getEnrichedHRContacts();
+    const totalHR = allHR.length;
+    const sentHR = allHR.filter(c => c.status === 'SENT').length;
+    const remainingHR = totalHR - sentHR;
+
     const curated = getCuratedDevOpsCompanies();
     const totalCurated = curated.length;
     const sentCurated = curated.filter(c => c.status === 'SENT').length;
-    const remainingCurated = totalCurated - sentCurated;
-    const dailyStats = autoPilot && autoPilot.getDailyStats ? autoPilot.getDailyStats() : { count: 0, limit: 150 };
+
+    const dailyStats = autoPilot && autoPilot.getDailyStats ? autoPilot.getDailyStats() : { sentToday: 0, limit: 500 };
+
+    const batchSize = 100;
+    const currentBatchNumber = Math.floor(sentHR / batchSize) + 1;
+    const totalBatches = Math.ceil(totalHR / batchSize) || 1;
 
     return {
       is_running: campaignState.isRunning,
+      source: remainingHR > 0 ? 'CSV_LIST' : 'AI_ONLINE_FALLBACK',
+      batch_info: {
+        current_batch: Math.min(currentBatchNumber, totalBatches),
+        total_batches: totalBatches,
+        batch_size: batchSize
+      },
       progress: {
         current: campaignState.current,
         target: campaignState.target,
-        current_company: campaignState.currentCompany,
+        current_contact: campaignState.currentContact,
         started_at: campaignState.startedAt,
         completed_at: campaignState.completedAt,
         last_log: campaignState.lastLog
       },
       stats: {
-        database_total: totalCurated,
-        contacted_total: sentCurated,
-        remaining_uncontacted: remainingCurated,
-        today_sent: dailyStats.count,
-        daily_limit: dailyStats.limit,
+        hr_csv_total: totalHR,
+        hr_csv_sent: sentHR,
+        hr_csv_remaining: remainingHR,
+        curated_total: totalCurated,
+        curated_sent: sentCurated,
+        today_sent: (dailyStats.sentToday !== undefined ? dailyStats.sentToday : dailyStats.count) || 0,
+        daily_limit: dailyStats.limit || 500,
         daily_goal: 100
       },
-      recent_results: campaignState.results.slice(-10)
+      recent_results: campaignState.results.slice(-15)
     };
   }
 
   // ──────────────────────────────────────────────
-  // AI Recruiter & HR Lead Discovery
+  // AI Recruiter & HR Lead Discovery (Online Query)
   // ──────────────────────────────────────────────
   async function findRecruiterLeads({
     companies = [],
@@ -253,14 +441,17 @@ Return ONLY a JSON array with this exact schema:
       if (!existing) {
         existingLeads.unshift(leadRecord);
         newSavedLeads.push(leadRecord);
+      } else {
+        Object.assign(existing, leadRecord);
       }
 
-      if (autoSend && leadRecord.status !== 'SENT') {
+      if (autoSend) {
         try {
-          const sentResult = await sendLeadEmail(leadRecord.id);
-          autoSendResults.push({ id: leadRecord.id, email: cleanEmail, success: true, result: sentResult });
-        } catch (sendErr) {
-          autoSendResults.push({ id: leadRecord.id, email: cleanEmail, success: false, error: sendErr.message });
+          const sendRes = await sendLeadEmail(leadRecord.id);
+          autoSendResults.push({ id: leadRecord.id, email: leadRecord.email, success: true, messageId: sendRes.message_id });
+        } catch (sErr) {
+          console.error(`[LeadFinder] Auto-send failed for ${leadRecord.email}:`, sErr.message);
+          autoSendResults.push({ id: leadRecord.id, email: leadRecord.email, success: false, error: sErr.message });
         }
       }
     }
@@ -277,7 +468,7 @@ Return ONLY a JSON array with this exact schema:
   }
 
   // ──────────────────────────────────────────────
-  // Dispatch Cold Email to Specific Lead
+  // Dispatch Cold Email to Specific Recruiter Lead
   // ──────────────────────────────────────────────
   async function sendLeadEmail(leadId) {
     const leads = getLeads();
@@ -334,115 +525,293 @@ Return ONLY a JSON array with this exact schema:
   }
 
   // ──────────────────────────────────────────────
-  // ⚡ AUTONOMOUS DAILY 100 DEVOPS CAMPAIGN WORKER
+  // Send Single Direct HR Contact from CSV
+  // ──────────────────────────────────────────────
+  async function sendDirectHRContact(contact) {
+    if (!contact || !contact.email) {
+      throw new Error('Invalid HR contact');
+    }
+
+    if (autoPilot && autoPilot.isDailyLimitReached && autoPilot.isDailyLimitReached()) {
+      const stats = autoPilot.getDailyStats ? autoPilot.getDailyStats() : { count: 150, limit: 150 };
+      throw new Error(`Daily send limit reached (${stats.count}/${stats.limit}).`);
+    }
+
+    const profile = getUserProfile();
+    const currentResume = getSavedResume();
+    const firstName = (contact.name || 'Hiring Leader').split(' ')[0];
+    const candidateName = profile.name || 'Candidate';
+    const candidateRole = profile.title || 'Software Professional';
+    const candidateSkills = profile.core_skills || 'Cloud platforms, automation, CI/CD, and scalable software architecture';
+    const candidatePortfolio = profile.portfolio || '';
+    const candidatePhone = profile.phone || '';
+    const candidateSignature = profile.signature || [
+      candidateName,
+      candidateRole,
+      candidatePhone ? `📞 ${candidatePhone}` : '',
+      candidatePortfolio ? `🌐 ${candidatePortfolio}` : '',
+      profile.linkedin ? `💼 ${profile.linkedin}` : ''
+    ].filter(Boolean).join('\n');
+
+    const subject = `${candidateRole} Inquiry - ${contact.company} | ${candidateName}`;
+    const body = `Hi ${firstName},
+
+I came across your profile as ${contact.title || 'Talent Acquisition Leader'} at ${contact.company} and wanted to reach out directly regarding ${candidateRole} opportunities on your team.
+
+My technical experience centers on ${candidateSkills}. In my recent implementations, I designed and delivered scalable software solutions that cut deployment cycles, improved infrastructure reliability, and drove engineering velocity.
+
+I have attached my resume for your review.${candidatePortfolio ? ` You can also explore my live interactive architecture diagrams and deployed projects on my portfolio: ${candidatePortfolio}` : ''}
+
+I would welcome the opportunity for a brief conversation to see how my hands-on background and skills could contribute to ${contact.company}.
+
+Best regards,
+
+${candidateSignature}`;
+
+    const result = await sendEmailFn({
+      to: contact.email,
+      subject: subject,
+      body: body,
+      resumePath: currentResume.path,
+      resumeOriginalName: currentResume.originalName
+    });
+
+    const progress = getHRProgress();
+    if (!progress.sent_emails) progress.sent_emails = {};
+    progress.sent_emails[contact.email] = {
+      sent_at: new Date().toISOString(),
+      name: contact.name,
+      title: contact.title,
+      company: contact.company,
+      message_id: result.messageId || null,
+      status: 'SENT'
+    };
+    saveHRProgress(progress);
+
+    if (autoPilot) {
+      if (autoPilot.recordDailySend) autoPilot.recordDailySend();
+      if (autoPilot.markApplied) {
+        autoPilot.markApplied(contact.email, contact.company || 'Company', candidateRole);
+      }
+      if (autoPilot.scheduleFollowUp) {
+        autoPilot.scheduleFollowUp({
+          recipient_email: contact.email,
+          company_name: contact.company || 'Company',
+          job_title: candidateRole,
+          contact_person: contact.name,
+          initial_subject: subject,
+          initial_body: body
+        });
+      }
+    }
+
+    return {
+      success: true,
+      email: contact.email,
+      message_id: result.messageId
+    };
+  }
+
+  // ──────────────────────────────────────────────
+  // ⚡ AUTONOMOUS DAILY 100 HR COLD MAIL CAMPAIGN
   // ──────────────────────────────────────────────
   async function startDaily100DevOpsCampaign({ targetCount = 100, delayMs = 3000 } = {}) {
     if (campaignState.isRunning) {
-      throw new Error('A DevOps cold outreach campaign is already running.');
+      throw new Error('An HR cold outreach campaign is already currently running.');
     }
 
-    const curated = getCuratedDevOpsCompanies();
-    const uncontacted = curated.filter(c => c.status !== 'SENT');
+    // 1. First check HR Contacts from CSV
+    const allHR = getEnrichedHRContacts();
+    const uncontactedHR = allHR.filter(c => c.status !== 'SENT');
 
-    if (uncontacted.length === 0) {
-      throw new Error('All curated DevOps companies in the database have already been contacted! Add more companies or reset history.');
+    let batch = [];
+    let isFallback = false;
+
+    if (uncontactedHR.length > 0) {
+      // Pull next batch of up to 100 HRs from CSV
+      batch = uncontactedHR.slice(0, targetCount);
+      campaignState.source = 'CSV_LIST';
+      console.log(`[HRCampaign] 🚀 Launching daily batch of ${batch.length} HR contacts from hr_contacts.csv (${uncontactedHR.length} remaining total)...`);
+    } else {
+      // 2. CSV Completed! Fallback to AI Online Discovery & Curated Tech Unicorns
+      isFallback = true;
+      campaignState.source = 'AI_ONLINE_FALLBACK';
+      const curated = getCuratedDevOpsCompanies();
+      const uncontactedCurated = curated.filter(c => c.status !== 'SENT');
+
+      if (uncontactedCurated.length === 0) {
+        throw new Error('All 1,842 HR contacts from CSV AND all curated tech companies have been contacted! Reset history to re-send.');
+      }
+
+      batch = uncontactedCurated.slice(0, targetCount).map(c => ({
+        name: `${c.name} Talent Acquisition Team`,
+        email: c.email || `careers@${c.domain}`,
+        title: 'Talent Acquisition & Technical Recruiting',
+        company: c.name
+      }));
+
+      console.log(`[HRCampaign] 🔄 CSV exhausted! Falling back to AI Online / Curated Tech Unicorn database for ${batch.length} companies...`);
     }
 
-    const batch = uncontacted.slice(0, targetCount);
     const profile = getUserProfile();
     const currentResume = getSavedResume();
-    const candidateRole = profile.title || 'DevOps & Cloud Engineer';
-    const candidatePortfolio = profile.portfolio || 'https://ajayautade.com';
-    const candidateSkills = profile.core_skills || 'AWS, Kubernetes, Docker, Terraform, CI/CD, Prometheus & Grafana, Python';
+    const candidateName = profile.name || 'Candidate';
+    const candidateRole = profile.title || 'Software Professional';
+    const candidateSkills = profile.core_skills || 'Cloud platforms, automation, CI/CD, and scalable software architecture';
+    const candidatePortfolio = profile.portfolio || '';
+    const candidatePhone = profile.phone || '';
+    const candidateSignature = profile.signature || [
+      candidateName,
+      candidateRole,
+      candidatePhone ? `📞 ${candidatePhone}` : '',
+      candidatePortfolio ? `🌐 ${candidatePortfolio}` : '',
+      profile.linkedin ? `💼 ${profile.linkedin}` : ''
+    ].filter(Boolean).join('\n');
 
     campaignState = {
       isRunning: true,
       shouldStop: false,
       current: 0,
       target: batch.length,
-      currentCompany: null,
+      currentContact: null,
       startedAt: new Date().toISOString(),
       completedAt: null,
-      lastLog: `Starting campaign for ${batch.length} curated DevOps companies...`,
+      source: isFallback ? 'AI_ONLINE_FALLBACK' : 'CSV_LIST',
+      lastLog: `Starting campaign for ${batch.length} HR leaders...`,
       results: []
     };
 
-    console.log(`[DevOpsCampaign] 🚀 Starting Autonomous Daily 100 Cold Mail Campaign for ${batch.length} companies...`);
-
-    // Run asynchronously in background
+    // Async worker execution
     (async () => {
       for (let i = 0; i < batch.length; i++) {
         if (campaignState.shouldStop) {
-          console.log('[DevOpsCampaign] ⏸️ Campaign stopped by user.');
-          campaignState.lastLog = `Campaign paused at ${i}/${batch.length} companies.`;
+          campaignState.lastLog = `Campaign stopped by user at ${i}/${batch.length}.`;
+          console.log('[HRCampaign] 🛑 Campaign stopped by user.');
           break;
         }
 
-        const comp = batch[i];
+        const hr = batch[i];
+        const firstName = (hr.name || 'Hiring Leader').split(' ')[0];
         campaignState.current = i + 1;
-        campaignState.currentCompany = comp.name;
-        campaignState.lastLog = `[${i + 1}/${batch.length}] Contacting ${comp.name} (${comp.domain})...`;
-        console.log(`[DevOpsCampaign] [${i + 1}/${batch.length}] 🎯 Processing ${comp.name}...`);
+        campaignState.currentContact = `${hr.name} (${hr.company})`;
+        campaignState.lastLog = `[${i + 1}/${batch.length}] Contacting ${hr.name} at ${hr.company} (${hr.email})...`;
+        console.log(`[HRCampaign] [${i + 1}/${batch.length}] 🎯 Processing ${hr.name} (${hr.company})...`);
 
         try {
           // Check daily limit
           if (autoPilot && autoPilot.isDailyLimitReached && autoPilot.isDailyLimitReached()) {
             const stats = autoPilot.getDailyStats ? autoPilot.getDailyStats() : {};
-            campaignState.lastLog = `Daily limit reached (${stats.count || 0}/${stats.limit || 150}). Campaign paused.`;
-            console.log('[DevOpsCampaign] 🛑 Daily limit reached.');
+            campaignState.lastLog = `Daily limit reached (${stats.sentToday || stats.count || 0}/${stats.limit || 500}). Campaign paused for today.`;
+            console.log('[HRCampaign] 🛑 Daily limit reached.');
             break;
           }
 
-          const recipientEmail = comp.email || `careers@${comp.domain}`;
-          const emailSubject = `DevOps & Cloud Engineer Inquiry - ${profile.name || 'Er. Ajay Autade'}`;
-          const emailBody = `Hi ${comp.name} Talent & Engineering Team,\n\nI noticed ${comp.name}’s impressive engineering growth in ${comp.category || 'tech'} and wanted to reach out directly regarding ${candidateRole} opportunities.\n\nMy technical background is focused on ${candidateSkills}. In my recent projects, I automated multi-region cloud infrastructure using modular Terraform, built zero-touch CI/CD pipelines with GitHub Actions and ArgoCD cutting release times by 60%, and configured real-time monitoring and alerting with Prometheus & Grafana.\n\nI've attached my resume for your review, and you can also explore my live interactive architecture diagrams and deployed project demos on my portfolio at ${candidatePortfolio}.\n\nI would welcome the opportunity for a brief conversation to see how my background could contribute to ${comp.name}.\n\nBest regards,\n\n${profile.signature}`;
+          const emailSubject = `${candidateRole} Inquiry - ${hr.company} | ${candidateName}`;
+          const emailBody = `Hi ${firstName},
 
-          // Create lead record
-          const leads = getLeads();
-          let existing = leads.find(l => l.email.toLowerCase() === recipientEmail.toLowerCase());
-          if (!existing) {
-            existing = {
-              id: `lead_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-              company_name: comp.name,
-              domain: comp.domain,
-              recruiter_name: `${comp.name} Talent Acquisition Team`,
-              recruiter_title: 'Talent Acquisition & Technical Recruiting',
-              email: recipientEmail,
-              target_role: candidateRole,
-              confidence: 'HIGH',
-              confidence_reason: 'Curated DevOps Hiring Database',
-              email_subject: emailSubject,
-              email_body: emailBody,
-              status: 'PENDING',
-              has_resume: !!(currentResume && currentResume.path),
-              created_at: new Date().toISOString(),
-              sent_at: null,
-              message_id: null
+I came across your role as ${hr.title || 'Talent Acquisition Leader'} at ${hr.company} and wanted to reach out directly regarding ${candidateRole} opportunities on your team.
+
+My technical experience centers on ${candidateSkills}. In my recent implementations, I designed and delivered scalable software solutions that cut deployment cycles, improved infrastructure reliability, and drove engineering velocity.
+
+I have attached my resume for your review.${candidatePortfolio ? ` You can also explore my live interactive architecture diagrams, infrastructure setups, and deployed projects on my portfolio: ${candidatePortfolio}` : ''}
+
+I would welcome the opportunity for a brief conversation to see how my hands-on background and skills could contribute to ${hr.company}.
+
+Best regards,
+
+${candidateSignature}`;
+
+          // Pre-send deliverability check (DNS MX verification & bounce blacklist)
+          const deliverability = await validateEmailDeliverability(hr.email);
+          if (!deliverability.valid) {
+            console.log(`[HRCampaign] 🚫 Skipping ${hr.email} (${deliverability.reason})`);
+            const progress = getHRProgress();
+            if (!progress.sent_emails) progress.sent_emails = {};
+            progress.sent_emails[hr.email] = {
+              sent_at: new Date().toISOString(),
+              name: hr.name,
+              title: hr.title,
+              company: hr.company,
+              status: 'SKIPPED_INVALID',
+              reason: deliverability.reason
             };
-            leads.unshift(existing);
-            saveLeads(leads);
+            saveHRProgress(progress);
+
+            campaignState.results.push({
+              name: hr.name,
+              company: hr.company,
+              email: hr.email,
+              success: false,
+              error: `Skipped: ${deliverability.reason}`,
+              timestamp: new Date().toISOString()
+            });
+            continue;
           }
 
-          // Dispatch email
-          const sendRes = await sendLeadEmail(existing.id);
+          const sendResult = await sendEmailFn({
+            to: hr.email,
+            subject: emailSubject,
+            body: emailBody,
+            resumePath: currentResume.path,
+            resumeOriginalName: currentResume.originalName
+          });
+
+          // Update HR Progress
+          const progress = getHRProgress();
+          if (!progress.sent_emails) progress.sent_emails = {};
+          progress.sent_emails[hr.email] = {
+            sent_at: new Date().toISOString(),
+            name: hr.name,
+            title: hr.title,
+            company: hr.company,
+            message_id: sendResult.messageId || null,
+            status: 'SENT'
+          };
+          saveHRProgress(progress);
+
+          if (autoPilot) {
+            if (autoPilot.recordDailySend) autoPilot.recordDailySend();
+            if (autoPilot.markApplied) {
+              autoPilot.markApplied(hr.email, hr.company || 'Company', candidateRole);
+            }
+            if (autoPilot.scheduleFollowUp) {
+              autoPilot.scheduleFollowUp({
+                recipient_email: hr.email,
+                company_name: hr.company || 'Company',
+                job_title: candidateRole,
+                contact_person: hr.name,
+                initial_subject: emailSubject,
+                initial_body: emailBody
+              });
+            }
+          }
 
           campaignState.results.push({
-            company: comp.name,
-            email: recipientEmail,
+            name: hr.name,
+            company: hr.company,
+            email: hr.email,
             success: true,
-            messageId: sendRes.message_id,
+            messageId: sendResult.messageId,
             timestamp: new Date().toISOString()
           });
 
-          console.log(`[DevOpsCampaign] ✅ [${i + 1}/${batch.length}] Successfully sent cold email to ${comp.name} (${recipientEmail})`);
+          console.log(`[HRCampaign] ✅ [${i + 1}/${batch.length}] Successfully sent cold email to ${hr.name} at ${hr.company} (${hr.email})`);
         } catch (itemErr) {
-          console.error(`[DevOpsCampaign] ❌ Failed for ${comp.name}:`, itemErr.message);
+          console.error(`[HRCampaign] ❌ Failed for ${hr.name} (${hr.company}):`, itemErr.message);
           campaignState.results.push({
-            company: comp.name,
+            name: hr.name,
+            company: hr.company,
+            email: hr.email,
             success: false,
             error: itemErr.message,
             timestamp: new Date().toISOString()
           });
+
+          if (itemErr.message.includes('550') || itemErr.message.includes('Daily user sending limit exceeded') || itemErr.message.includes('sending limit')) {
+            campaignState.lastLog = `⚠️ Gmail Daily Quota Reached: Google's SMTP server reported '550 Daily user sending limit exceeded'. Google enforces a 24-hour rolling limit on free Gmail accounts. Please wait for the quota to reset tomorrow or configure an alternate sending account.`;
+            console.warn(`[HRCampaign] 🛑 Halting campaign: Gmail account daily sending limit exceeded.`);
+            break;
+          }
         }
 
         // Add human jitter between automated cold emails (3s–6s)
@@ -454,15 +823,16 @@ Return ONLY a JSON array with this exact schema:
 
       campaignState.isRunning = false;
       campaignState.completedAt = new Date().toISOString();
-      campaignState.lastLog = `Campaign completed! Dispatched ${campaignState.results.filter(r => r.success).length} cold emails with resume attached.`;
-      console.log(`[DevOpsCampaign] 🏁 Campaign finished. Log: ${campaignState.lastLog}`);
+      campaignState.lastLog = `Batch completed! Dispatched ${campaignState.results.filter(r => r.success).length} cold emails with resume attached.`;
+      console.log(`[HRCampaign] 🏁 Campaign finished. Log: ${campaignState.lastLog}`);
     })();
 
     return {
       success: true,
-      message: `Started campaign for ${batch.length} curated DevOps companies.`,
+      message: `Started campaign for ${batch.length} HR leaders (${campaignState.source}).`,
       target_count: batch.length,
-      first_company: batch[0].name
+      source: campaignState.source,
+      first_contact: `${batch[0].name} (${batch[0].company})`
     };
   }
 
@@ -472,6 +842,17 @@ Return ONLY a JSON array with this exact schema:
     }
     campaignState.shouldStop = true;
     return { success: true, message: 'Stopping campaign gracefully...' };
+  }
+
+  function resetHRCampaign() {
+    try {
+      if (fs.existsSync(hrProgressFile)) {
+        fs.unlinkSync(hrProgressFile);
+      }
+      return { success: true, message: 'HR contacts campaign progress reset successfully' };
+    } catch (e) {
+      return { success: false, message: e.message };
+    }
   }
 
   // ──────────────────────────────────────────────
@@ -537,7 +918,10 @@ Return ONLY a JSON array with this exact schema:
     getCuratedDevOpsCompanies,
     getCampaignStatus,
     startDaily100DevOpsCampaign,
-    stopDailyCampaign
+    stopDailyCampaign,
+    resetHRCampaign,
+    getHRContactsList,
+    sendDirectHRContact
   };
 }
 
