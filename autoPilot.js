@@ -9,6 +9,13 @@ function extractAllEmails(text) {
   return Array.from(new Set(matches.map(e => e.trim().toLowerCase())));
 }
 
+function isTollFreeNumber(digits) {
+  if (!digits) return false;
+  return digits.startsWith('1800') || digits.startsWith('1888') || digits.startsWith('1877') || 
+         digits.startsWith('1866') || digits.startsWith('1855') || digits.startsWith('1844') || 
+         digits.startsWith('1833') || digits.startsWith('911800') || digits.startsWith('01800');
+}
+
 function cleanPhoneNumber(rawPhone) {
   if (!rawPhone || typeof rawPhone !== 'string') return null;
   // If there are multiple numbers (e.g. "9876543210 / 9876543211"), take the first valid one
@@ -17,6 +24,10 @@ function cleanPhoneNumber(rawPhone) {
     let digits = part.trim().replace(/[^0-9+]/g, '');
     if (digits.startsWith('+')) digits = digits.substring(1);
     
+    if (isTollFreeNumber(digits)) {
+      continue;
+    }
+
     // Indian standard 10-digit mobile number
     if (/^[6-9]\d{9}$/.test(digits)) {
       return '91' + digits;
@@ -29,6 +40,21 @@ function cleanPhoneNumber(rawPhone) {
     if (/^91[6-9]\d{9}$/.test(digits)) {
       return digits;
     }
+    // Indian corporate direct lines starting with 91
+    if (/^91\d{10}$/.test(digits)) {
+      return digits;
+    }
+    if (/^0\d{10}$/.test(digits)) {
+      return '91' + digits.substring(1);
+    }
+    // US / North America 11 digits starting with 1
+    if (/^1[2-9]\d{9}$/.test(digits)) {
+      return digits;
+    }
+    // US 10 digits
+    if (/^[2-9]\d{9}$/.test(digits)) {
+      return '1' + digits;
+    }
     // International numbers between 10 and 15 digits
     if (digits.length >= 10 && digits.length <= 15) {
       return digits;
@@ -39,10 +65,12 @@ function cleanPhoneNumber(rawPhone) {
 
 function formatDisplayPhone(phone) {
   if (!phone) return '';
-  const clean = cleanPhoneNumber(phone);
-  if (!clean) return phone;
+  const clean = cleanPhoneNumber(phone) || phone;
   if (clean.startsWith('91') && clean.length === 12) {
     return `+91 ${clean.slice(2, 7)} ${clean.slice(7)}`;
+  }
+  if (clean.startsWith('1') && clean.length === 11) {
+    return `+1 (${clean.slice(1, 4)}) ${clean.slice(4, 7)}-${clean.slice(7)}`;
   }
   return `+${clean}`;
 }
@@ -318,7 +346,7 @@ function initAutoPilot({
 
   function getDailyStats() {
     const today = getTodayKey();
-    let limit = parseInt(process.env.DAILY_SEND_LIMIT || '150', 10);
+    let limit = parseInt(process.env.DAILY_SEND_LIMIT || '500', 10);
     try {
       if (fs.existsSync(dailyStatsFile)) {
         const raw = JSON.parse(fs.readFileSync(dailyStatsFile, 'utf8'));
@@ -421,20 +449,23 @@ function initAutoPilot({
     }
   }
 
-  function scheduleFollowUp({ contact_email, company_name, job_title, original_subject, original_sent_at, original_job_id, contact_person }) {
+  function scheduleFollowUp(params = {}) {
+    const contactEmail = (params.contact_email || params.recipient_email || params.email || '').toLowerCase().trim();
+    if (!contactEmail) return null;
+
     const list = getFollowUps();
     const followUpDays = parseInt(process.env.FOLLOW_UP_DAYS || '4', 10);
-    const sentDate = original_sent_at ? new Date(original_sent_at) : new Date();
+    const sentDate = params.original_sent_at ? new Date(params.original_sent_at) : new Date();
     const dueDate = new Date(sentDate.getTime() + followUpDays * 24 * 60 * 60 * 1000);
 
     const newFollowUp = {
       id: `fu-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-      original_job_id: original_job_id || `job-${Date.now()}`,
-      contact_email: contact_email,
-      company_name: company_name || 'Company',
-      job_title: job_title || 'DevOps Engineer',
-      contact_person: contact_person || null,
-      original_subject: original_subject || 'Application',
+      original_job_id: params.original_job_id || `job-${Date.now()}`,
+      contact_email: contactEmail,
+      company_name: params.company_name || 'Company',
+      job_title: params.job_title || 'DevOps Engineer',
+      contact_person: params.contact_person || null,
+      original_subject: params.original_subject || params.initial_subject || 'Application',
       original_sent_at: sentDate.toISOString(),
       follow_up_due: dueDate.toISOString(),
       status: 'SCHEDULED', // SCHEDULED | SENT | REPLIED | CANCELLED
@@ -443,8 +474,8 @@ function initAutoPilot({
     };
 
     const existsIndex = list.findIndex(f => 
-      f.contact_email.toLowerCase() === contact_email.toLowerCase() &&
-      normalizeRole(f.job_title) === normalizeRole(job_title) &&
+      f.contact_email && f.contact_email.toLowerCase().trim() === contactEmail &&
+      normalizeRole(f.job_title || '') === normalizeRole(params.job_title || '') &&
       f.status === 'SCHEDULED'
     );
 
@@ -455,15 +486,17 @@ function initAutoPilot({
     }
 
     saveFollowUps(list.slice(0, 200));
-    console.log(`[Follow-Up Cadence] 📅 Follow-up scheduled for ${contact_email} ("${job_title}") due on ${dueDate.toLocaleDateString()}`);
+    console.log(`[Follow-Up Cadence] 📅 Follow-up scheduled for ${contactEmail} ("${params.job_title || 'DevOps Engineer'}") due on ${dueDate.toLocaleDateString()}`);
     return newFollowUp;
   }
 
   function markFollowUpReplied(idOrEmail) {
+    if (!idOrEmail) return false;
     const list = getFollowUps();
     let found = false;
+    const cleanSearch = String(idOrEmail).toLowerCase().trim();
     list.forEach(f => {
-      if (f.id === idOrEmail || f.contact_email.toLowerCase() === idOrEmail.toLowerCase()) {
+      if (f.id === idOrEmail || (f.contact_email && f.contact_email.toLowerCase().trim() === cleanSearch)) {
         f.status = 'REPLIED';
         f.replied_at = new Date().toISOString();
         found = true;
@@ -626,6 +659,153 @@ Return ONLY valid JSON:
     return updateWhatsAppLead(id, { status: 'SENT' });
   }
 
+  function generateGenericDevOpsWhatsAppMessage({ contact_person, company_name, job_title }) {
+    const profile = getUserProfile();
+    const firstName = (contact_person && contact_person !== 'null' && contact_person !== 'Hiring Manager' && contact_person !== 'Hiring Leader')
+      ? contact_person.split(' ')[0]
+      : 'Hiring Leader';
+
+    const companyStr = company_name && company_name !== 'Tech Organization' && company_name !== 'Company'
+      ? ` at ${company_name}`
+      : '';
+
+    const candidatePortfolio = profile.portfolio || 'https://yourportfolio.com';
+    const candidatePhone = profile.phone || '';
+    const candidateLinkedin = profile.linkedin || 'https://linkedin.com/in/yourprofile';
+
+    const contactParts = [];
+    if (candidatePhone) contactParts.push(`📱 ${candidatePhone}`);
+    if (candidatePortfolio) contactParts.push(`🌐 ${candidatePortfolio}`);
+    if (candidateLinkedin) contactParts.push(`💼 ${candidateLinkedin}`);
+
+    return `Hi ${firstName},
+
+I hope you're having a great week! I came across your profile${companyStr} and wanted to reach out directly regarding engineering opportunities on your team.
+
+I specialize in ${profile.core_skills || 'Cloud Infrastructure, CI/CD, and scalable software systems'}.
+
+You can explore my interactive architecture setups and live projects on my portfolio: ${candidatePortfolio}
+
+I would love to share my resume PDF with you. Would you be open for a brief conversation?
+
+Best regards,
+${profile.name || 'Candidate Name'}
+${profile.title || 'Software Professional'}
+${contactParts.join('\n')}`;
+  }
+
+  function importWhatsAppLeadsFromCSV(csvPath) {
+    const targetPath = csvPath || path.join(__dirname, 'hr_contacts.csv');
+    if (!fs.existsSync(targetPath)) {
+      throw new Error(`CSV file not found at: ${targetPath}`);
+    }
+
+    const content = fs.readFileSync(targetPath, 'utf8');
+    const lines = [];
+    let row = [];
+    let inQuotes = false;
+    let currentField = '';
+
+    for (let i = 0; i < content.length; i++) {
+      const char = content[i];
+      const nextChar = content[i + 1];
+      if (char === '"' && inQuotes && nextChar === '"') {
+        currentField += '"';
+        i++;
+      } else if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        row.push(currentField.trim());
+        currentField = '';
+      } else if ((char === '\r' || char === '\n') && !inQuotes) {
+        if (char === '\r' && nextChar === '\n') i++;
+        row.push(currentField.trim());
+        if (row.some(f => f.length > 0)) lines.push(row);
+        row = [];
+        currentField = '';
+      } else {
+        currentField += char;
+      }
+    }
+    if (currentField.length > 0 || row.length > 0) {
+      row.push(currentField.trim());
+      if (row.some(f => f.length > 0)) lines.push(row);
+    }
+
+    const list = getWhatsAppLeads();
+    const existingPhones = new Set(list.map(l => l.phone_number).filter(Boolean));
+    let importedCount = 0;
+
+    for (const r of lines) {
+      const rClean = [...r];
+      while (rClean.length > 0 && !rClean[0].trim()) {
+        rClean.shift();
+      }
+      if (rClean.length === 0) continue;
+
+      let foundPhone = null;
+      for (const col of r) {
+        const cleaned = cleanPhoneNumber(col);
+        if (cleaned && !col.includes('@') && !col.toLowerCase().includes('linkedin') && !col.toLowerCase().includes('http')) {
+          foundPhone = cleaned;
+          break;
+        }
+      }
+
+      if (foundPhone && !existingPhones.has(foundPhone)) {
+        existingPhones.add(foundPhone);
+        const firstName = rClean[0] ? rClean[0].trim() : '';
+        const lastName = rClean[1] ? rClean[1].trim() : '';
+        const fullName = `${firstName} ${lastName}`.trim() || 'Hiring Leader';
+        const title = rClean[2] ? rClean[2].trim() : 'Talent Acquisition';
+        let email = '';
+        for (const c of r) {
+          const m = c.match(/[\w\.-]+@[\w\.-]+\.\w+/);
+          if (m) {
+            email = m[0].toLowerCase().trim();
+            break;
+          }
+        }
+        let company = rClean.length > 4 ? rClean[4].trim() : '';
+        company = company ? company.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : 'Tech Organization';
+
+        const msgDraft = generateGenericDevOpsWhatsAppMessage({
+          contact_person: fullName,
+          company_name: company,
+          job_title: 'DevOps & Cloud Engineer'
+        });
+
+        const newLead = {
+          id: `wa-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+          phone_number: foundPhone,
+          display_phone: formatDisplayPhone(foundPhone),
+          company_name: company,
+          job_title: 'DevOps & Cloud Engineer',
+          contact_person: fullName,
+          message_draft: msgDraft,
+          status: 'PENDING_APPROVAL',
+          source: 'CSV_IMPORT',
+          screenshot_file: null,
+          has_email: !!email,
+          contact_email: email || null,
+          created_at: new Date().toISOString(),
+          sent_at: null
+        };
+
+        list.unshift(newLead);
+        importedCount++;
+      }
+    }
+
+    saveWhatsAppLeads(list.slice(0, 1000));
+    console.log(`[WhatsApp Outreach] 📥 Successfully imported ${importedCount} recruiter WhatsApp leads from ${targetPath}`);
+    return {
+      success: true,
+      imported_count: importedCount,
+      total_leads: list.length
+    };
+  }
+
   async function draftWhatsAppPitch(jobData, resumeInfo) {
     if (typeof draftWhatsAppMessage === 'function') {
       return await draftWhatsAppMessage(jobData, resumeInfo);
@@ -657,9 +837,9 @@ CRITICAL GUIDELINES:
 - Mention that interactive project architectures can be seen on ${candidatePortfolio} and offer to share the resume PDF.
 - Sign off with:
 Best regards,
-${profile.name}
-${profile.title}
-📱 ${profile.phone || '+91 9545034120'}
+${profile.name || 'Candidate Name'}
+${profile.title || 'Software Professional'}
+${profile.phone ? `📱 ${profile.phone}` : ''}
 🌐 ${candidatePortfolio}
 - Output ONLY the plain message text with natural line breaks.`;
 
@@ -685,19 +865,19 @@ ${profile.title}
       msg = msg.replace(/^```[a-z]*\n/i, '').replace(/\n```$/g, '').trim();
       return msg;
     } catch (err) {
-      const primarySkill = (jobData.key_skills && jobData.key_skills[0]) || 'AWS cloud automation & Kubernetes';
+      const primarySkill = (jobData.key_skills && jobData.key_skills[0]) || 'Cloud Infrastructure & Automation';
       return `${recipientGreeting}
 
-Hope you're doing well! I saw your opening for the ${jobData.job_title || profile.title || 'DevOps Engineer'} role at ${jobData.company_name || 'your team'} and wanted to connect directly.
+Hope you're doing well! I saw your opening for the ${jobData.job_title || profile.title || 'Engineering'} role at ${jobData.company_name || 'your team'} and wanted to connect directly.
 
-I'm ${profile.name}, specializing in ${primarySkill} with hands-on experience automating cloud infrastructure with Terraform and building high-speed CI/CD pipelines.
+I'm ${profile.name || 'Candidate Name'}, specializing in ${primarySkill} with hands-on experience building automated, scalable infrastructure and reliable CI/CD pipelines.
 
 You can view my live project architectures on ${candidatePortfolio}. I'd love to share my resume and discuss how I can contribute. Are you open for a brief chat?
 
 Best regards,
-${profile.name}
-${profile.title}
-📱 ${profile.phone || '+91 9545034120'}
+${profile.name || 'Candidate Name'}
+${profile.title || 'Software Professional'}
+${profile.phone ? `📱 ${profile.phone}` : ''}
 🌐 ${candidatePortfolio}`;
     }
   }
@@ -715,20 +895,31 @@ ${profile.title}
     const draft = await draftFollowUpEmail(item, currentResume);
 
     console.log(`[Follow-Up Cadence] 📤 Sending scheduled follow-up for "${item.job_title}" to ${item.contact_email}...`);
-    const sendResult = await sendEmailFn({
-      to: item.contact_email,
-      subject: draft.subject,
-      body: draft.body,
-      resumePath: currentResume.path,
-      resumeOriginalName: currentResume.originalName
-    });
+    try {
+      const sendResult = await sendEmailFn({
+        to: item.contact_email,
+        subject: draft.subject,
+        body: draft.body,
+        resumePath: currentResume.path,
+        resumeOriginalName: currentResume.originalName
+      });
 
-    item.status = 'SENT';
-    item.sent_at = new Date().toISOString();
-    item.message_id = sendResult.messageId || 'OK';
-    saveFollowUps(list);
+      item.status = 'SENT';
+      item.sent_at = new Date().toISOString();
+      item.message_id = sendResult.messageId || 'OK';
+      saveFollowUps(list);
 
-    recordDailySend(item.contact_email, item.job_title, item.company_name);
+      recordDailySend(item.contact_email, item.job_title, item.company_name);
+    } catch (err) {
+      if (err.message.includes('BounceShield') || err.message.includes('bounce') || err.message.includes('MX')) {
+        item.status = 'CANCELLED_BOUNCED';
+        item.cancelReason = err.message;
+        saveFollowUps(list);
+        console.warn(`[Follow-Up Cadence] 🚫 Cancelled follow-up for ${item.contact_email}: ${err.message}`);
+        return { success: false, cancelled: true, reason: err.message };
+      }
+      throw err;
+    }
 
     saveHistory({
       id: `fu-sent-${Date.now()}`,
@@ -871,6 +1062,22 @@ IMPORTANT:
 
       const jobRole = jobData.job_title || 'DevOps Position';
       const jobComp = jobData.company_name || 'Company';
+
+      // ── RECORD EXTRACTED HR CONTACT FROM SCREENSHOT ──
+      try {
+        const { recordExtractedHR } = require('./extractedHrManager');
+        recordExtractedHR({
+          name: jobData.contact_person,
+          company: jobComp,
+          email: (extractedEmails && extractedEmails.length > 0) ? extractedEmails[0] : jobData.contact_email,
+          jobTitle: jobRole,
+          phone: rawPhone || cleanPhone,
+          source: fileNames[0] || 'Auto-Pilot Screenshot',
+          timestamp
+        });
+      } catch (hrErr) {
+        console.warn('[Auto-Pilot] Could not record extracted HR contact:', hrErr.message);
+      }
 
       // ── WHATSAPP RECRUITER SHORTLISTING ──
       if (cleanPhone) {
@@ -1226,6 +1433,8 @@ IMPORTANT:
     updateWhatsAppLead,
     dismissWhatsAppLead,
     markWhatsAppLeadSent,
+    importWhatsAppLeadsFromCSV,
+    generateGenericDevOpsWhatsAppMessage,
     draftWhatsAppPitch,
     cleanPhoneNumber,
     formatDisplayPhone,

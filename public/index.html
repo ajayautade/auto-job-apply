@@ -68,8 +68,8 @@
     <div class="mode-tabs" id="modeTabs">
       <button class="mode-tab active" id="tabAutoPilot" data-tab="autopilot">
         <span class="tab-icon">🤖</span>
-        <span class="tab-title">Auto-Pilot Watcher</span>
-        <span class="tab-badge">Autonomous</span>
+        <span class="tab-title">Auto-Pilot</span>
+        <span class="tab-badge">Auto</span>
       </button>
       <button class="mode-tab" id="tabManual" data-tab="manual">
         <span class="tab-icon">✍️</span>
@@ -77,23 +77,28 @@
       </button>
       <button class="mode-tab" id="tabLeads" data-tab="leads">
         <span class="tab-icon">🎯</span>
-        <span class="tab-title">Recruiter Cold Outreach</span>
+        <span class="tab-title">Cold Outreach</span>
         <span class="tab-badge" id="leadsTabBadge" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">0 leads</span>
       </button>
       <button class="mode-tab" id="tabFollowUps" data-tab="followups">
         <span class="tab-icon">📅</span>
-        <span class="tab-title">Follow-Up Cadence</span>
+        <span class="tab-title">Follow-Ups</span>
         <span class="tab-badge" id="followUpsTabBadge" style="background: rgba(124, 92, 252, 0.25); color: #c4b5fd;">0 due</span>
       </button>
       <button class="mode-tab" id="tabWhatsApp" data-tab="whatsapp">
         <span class="tab-icon">💬</span>
-        <span class="tab-title">WhatsApp Outreach</span>
+        <span class="tab-title">WhatsApp</span>
         <span class="tab-badge" id="whatsAppTabBadge" style="background: rgba(37, 211, 102, 0.2); color: #25d366;">0 leads</span>
       </button>
-      <button class="mode-tab" id="tabProfile" data-tab="profile">
-        <span class="tab-icon">⚙️</span>
-        <span class="tab-title">AI Persona & Profile</span>
-        <span class="tab-badge" id="profileRoleBadge" style="background: rgba(99, 102, 241, 0.2); color: #a5b4fc;">DevOps</span>
+      <button class="mode-tab" id="tabBounces" data-tab="bounces">
+        <span class="tab-icon">🛡️</span>
+        <span class="tab-title">Bounce Shield</span>
+        <span class="tab-badge" id="bouncesTabBadge" style="background: rgba(239, 68, 68, 0.2); color: #f87171;">0 trashed</span>
+      </button>
+      <button class="mode-tab" id="tabLiveJobs" data-tab="livejobs">
+        <span class="tab-icon">🌐</span>
+        <span class="tab-title">Live Job Radar</span>
+        <span class="tab-badge" id="liveJobsTabBadge" style="background: rgba(6, 182, 212, 0.2); color: #22d3ee;">Live ATS</span>
       </button>
     </div>
 
@@ -112,7 +117,15 @@
             <div class="autopilot-status-title">Auto-Pilot is Active & Watching Folder</div>
             <div class="autopilot-status-subtitle">Just drop job screenshots into the folder. AI extracts details, drafts your email, attaches your resume, and sends it automatically.</div>
           </div>
-          <div class="autopilot-actions">
+          <div class="autopilot-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <a href="/api/extracted-hr/download" class="btn btn-primary btn-sm" id="topDownloadExtractedHrBtn" download="extracted_hr_contacts.csv" style="background: linear-gradient(135deg, #7c5cfc 0%, #00d4aa 100%); color: #0a0a0f; font-weight: 700; box-shadow: 0 4px 14px rgba(124, 92, 252, 0.35);" title="Download all HR emails, names, and companies extracted from screenshots">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Download HR CSV</span>
+            </a>
             <button class="btn btn-secondary btn-sm" id="scanFolderBtn" title="Scan watch folder now">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
@@ -130,7 +143,7 @@
             </svg>
             <span>Watch Folder Path:</span>
           </div>
-          <div class="folder-path-value" id="watchFolderPath">/Users/sonuautade/Desktop/job-apply-ai/auto_jobs/</div>
+          <div class="folder-path-value" id="watchFolderPath">./auto_jobs/</div>
           <button class="btn btn-ghost btn-sm" id="copyPathBtn" title="Copy folder path">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
@@ -247,6 +260,132 @@
             </tbody>
           </table>
         </div>
+
+        <!-- 📄 History Pagination Controls (10 emails per page) -->
+        <div id="historyPaginationBar" style="display: none; align-items: center; justify-content: space-between; margin-top: 14px; padding: 12px 14px; background: rgba(0, 0, 0, 0.25); border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.06); font-size: 13px; color: var(--text-muted); flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span id="historyPageInfo" style="font-weight: 500; color: #cbd5e1;">Showing 1–10 of 0 emails</span>
+            <span class="badge" style="background: rgba(99, 102, 241, 0.15); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.3); font-size: 11px;">10 per page</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button class="btn btn-secondary btn-sm" id="historyPrevBtn" disabled style="padding: 4px 12px; font-size: 12.5px; display: inline-flex; align-items: center; gap: 4px;">
+              <span>&larr;</span> <span>Previous</span>
+            </button>
+            <div id="historyPageNumbers" style="display: flex; gap: 4px; align-items: center;"></div>
+            <button class="btn btn-secondary btn-sm" id="historyNextBtn" disabled style="padding: 4px 12px; font-size: 12.5px; display: inline-flex; align-items: center; gap: 4px;">
+              <span>Next</span> <span>&rarr;</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ────────────────────────────────────────────── -->
+      <!-- EXTRACTED HR CONTACTS FROM SCREENSHOTS CARD -->
+      <!-- ────────────────────────────────────────────── -->
+      <div class="card extracted-hr-card" id="extractedHrCard" style="margin-top: 24px;">
+        <div class="card-header" style="flex-wrap: wrap; gap: 12px; align-items: flex-start;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="badge" style="background: rgba(124, 92, 252, 0.15); color: #a78bfa; border: 1px solid rgba(124, 92, 252, 0.3);">Screenshot Intelligence</span>
+              <span class="badge" id="extractedHrTotalBadge" style="background: rgba(0, 212, 170, 0.15); color: #00d4aa; border: 1px solid rgba(0, 212, 170, 0.3);">0 Extracted</span>
+            </div>
+            <h2 class="card-title" style="margin-top: 6px;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #a78bfa;">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              Extracted HR & Recruiter Contacts Directory
+            </h2>
+            <p class="card-subtitle">
+              All HR emails, names, and company names automatically extracted from your job screenshots. Missing details are kept blank, and you can download the complete dataset in CSV format anytime.
+            </p>
+          </div>
+          <div class="card-actions" style="margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap;">
+            <a href="/api/contacts/download-master-csv" class="btn btn-primary btn-sm" id="downloadMasterCsvBtn" download="hr_contacts_master.csv" style="background: linear-gradient(135deg, #7c5cfc 0%, #00d4aa 100%); color: #0a0a0f; font-weight: 700; box-shadow: 0 4px 14px rgba(124, 92, 252, 0.35);" title="Download complete consolidated database of 3,480+ HR contacts">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Download Master Database (3,480+ CSV)</span>
+            </a>
+            <a href="/api/extracted-hr/download" class="btn btn-secondary btn-sm" id="downloadExtractedHrBtn" download="extracted_hr_contacts.csv" title="Download only screenshot-extracted contacts">
+              <span>Screenshots Only (CSV)</span>
+            </a>
+            <button class="btn btn-ghost btn-sm" id="refreshExtractedHrBtn" title="Refresh directory">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="1 4 1 10 7 10"></polyline>
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+              </svg>
+              <span>Refresh</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Metric Stat Strip -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 16px 0 20px;">
+          <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 10px; padding: 12px 16px;">
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.04em;">Total Contacts</div>
+            <div style="font-size: 20px; font-weight: 800; color: #fff; margin-top: 4px;" id="statExtractedTotal">0</div>
+          </div>
+          <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 10px; padding: 12px 16px;">
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.04em;">With Verified Email</div>
+            <div style="font-size: 20px; font-weight: 800; color: #00d4aa; margin-top: 4px;" id="statExtractedEmail">0</div>
+          </div>
+          <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 10px; padding: 12px 16px;">
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.04em;">With Recruiter Name</div>
+            <div style="font-size: 20px; font-weight: 800; color: #a78bfa; margin-top: 4px;" id="statExtractedName">0</div>
+          </div>
+          <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 10px; padding: 12px 16px;">
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.04em;">With Company Name</div>
+            <div style="font-size: 20px; font-weight: 800; color: #38bdf8; margin-top: 4px;" id="statExtractedCompany">0</div>
+          </div>
+        </div>
+
+        <!-- Filter & Search Bar -->
+        <div style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
+          <div class="search-input-wrap" style="flex: 1; min-width: 240px; position: relative;">
+            <input type="text" class="input" id="extractedHrSearchInput" placeholder="Search by HR Name, Company, Email, or Job Title..." style="width: 100%; padding-left: 36px; height: 38px; font-size: 13px;">
+            <span style="position: absolute; left: 12px; top: 10px; color: var(--text-muted); pointer-events: none;">🔍</span>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="extractedHrClearSearchBtn" style="height: 38px;">Clear</button>
+        </div>
+
+        <!-- Contacts Table Container -->
+        <div class="history-table-container">
+          <div class="history-empty" id="extractedHrEmpty" style="display: none;">
+            <div class="history-empty-icon">📭</div>
+            <div class="history-empty-title">No Extracted Contacts Found</div>
+            <div class="history-empty-desc">Drop screenshots into <code>auto_jobs/</code> or upload them manually. All extracted emails, names, and companies will be recorded here!</div>
+          </div>
+          <table class="history-table" id="extractedHrTable" style="display: none;">
+            <thead>
+              <tr>
+                <th style="width: 40px;">#</th>
+                <th>HR / Contact Name</th>
+                <th>Company Name</th>
+                <th>Email Address</th>
+                <th>Job Title / Role</th>
+                <th>Extracted Date</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody id="extractedHrTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Bar -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.06); font-size: 13px; color: var(--text-muted);">
+          <span id="extractedHrPageInfo">Showing 0 of 0 contacts</span>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-secondary btn-sm" id="extractedHrPrevBtn" disabled>&larr; Previous</button>
+            <button class="btn btn-secondary btn-sm" id="extractedHrNextBtn" disabled>Next &rarr;</button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -323,14 +462,25 @@
             </h2>
             <p class="card-subtitle">Recruiter mobile numbers detected in job screenshots are shortlisted below with customized, human-written WhatsApp message drafts ready for your 1-click approval & dispatch.</p>
           </div>
-          <div class="card-actions">
+          <div class="card-actions" style="display: flex; gap: 8px;">
+            <button class="btn btn-primary btn-sm" id="importWhatsAppCsvBtn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Import Leads from CSV
+            </button>
             <button class="btn btn-ghost btn-sm" id="refreshWhatsAppBtn">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="1 4 1 10 7 10"/>
-                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
-              </svg>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
               Refresh Leads
             </button>
+          </div>
+        </div>
+
+        <!-- WhatsApp Search & Filter Bar -->
+        <div class="whatsapp-filter-row">
+          <input type="text" id="whatsAppSearchInput" class="whatsapp-search-input" placeholder="🔍 Search by recruiter, role, company, or phone...">
+          <div class="whatsapp-status-filters" id="whatsAppStatusFilters" style="display: flex; gap: 6px;">
+            <button type="button" class="btn btn-secondary btn-sm wa-filter-btn active" data-filter="ALL">All (<span id="waAllCount">0</span>)</button>
+            <button type="button" class="btn btn-secondary btn-sm wa-filter-btn" data-filter="PENDING">Pending (<span id="waPendingCount">0</span>)</button>
+            <button type="button" class="btn btn-secondary btn-sm wa-filter-btn" data-filter="SENT">Sent (<span id="waSentCount">0</span>)</button>
           </div>
         </div>
 
@@ -351,21 +501,24 @@
     <!-- RECRUITER & HR COLD OUTREACH SECTION -->
     <!-- ═══════════════════════════════════════════════ -->
     <section class="leads-section" id="leadsSection" style="display: none;">
-      <!-- ⚡ AUTONOMOUS DAILY 100 DEVOPS CAMPAIGN HERO CARD -->
+      <!-- ⚡ AUTONOMOUS DAILY 100 HR COLD OUTREACH CAMPAIGN HERO CARD -->
       <div class="card devops-campaign-card">
         <div class="campaign-card-header">
           <div class="campaign-title-area">
-            <span class="campaign-pill">⚡ 1-Click Autonomous Outbound</span>
-            <h2 class="campaign-title">Daily 100 DevOps Cold Mail Campaign</h2>
-            <p class="campaign-desc">Pre-curated with 300+ Top Tech Unicorns, Cloud Startups & SaaS leaders hiring for DevOps, Cloud, SRE & Platform roles. Dispatches customized cold emails with resume attached at safe human cadence. Zero typing needed.</p>
+            <span class="campaign-pill" id="campSourceBadge">📦 Pre-Loaded 3,000+ HR Contacts (CSV)</span>
+            <h2 class="campaign-title">Daily 100 HR & Recruiter Cold Mail Campaign</h2>
+            <p class="campaign-desc">Directly targets 3,000+ verified HR Directors, Heads of Talent, Technical Recruiters, and Corporate IT Recruitment gateways from your pre-loaded list. Dispatches personalized DevOps application emails in daily batches of 100 with your resume attached, safe human jitter (3s–6s), and automatic 4-day follow-up. When all CSV contacts are finished, AI automatically discovers & emails new online recruiters.</p>
           </div>
           <div class="campaign-action-area">
             <button type="button" class="btn btn-primary btn-lg" id="startDailyCampaignBtn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); font-weight: 700; box-shadow: 0 0 24px rgba(16, 185, 129, 0.4);">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              <span>🚀 Launch Today's 100 Cold Mails</span>
+              <span id="startDailyCampaignBtnText">🚀 Launch Today's Batch of 100 HRs</span>
             </button>
             <button type="button" class="btn btn-danger btn-sm" id="stopDailyCampaignBtn" style="display: none;">
               <span>⏹️ Stop Campaign</span>
+            </button>
+            <button type="button" class="btn btn-ghost btn-sm" id="resetCampaignBtn" title="Reset CSV campaign progress">
+              <span>🔄 Reset History</span>
             </button>
           </div>
         </div>
@@ -374,23 +527,31 @@
         <div class="campaign-status-panel" id="campaignStatusPanel">
           <div class="campaign-metrics-row">
             <div class="campaign-metric">
+              <span class="metric-val text-primary" id="campTotalHRNum">3,044</span>
+              <span class="metric-lbl">Total HR in CSV</span>
+            </div>
+            <div class="campaign-metric">
               <span class="metric-val text-success" id="campContactedNum">0</span>
               <span class="metric-lbl">Contacted So Far</span>
             </div>
             <div class="campaign-metric">
-              <span class="metric-val text-primary" id="campRemainingNum">300+</span>
-              <span class="metric-lbl">Uncontacted in Queue</span>
+              <span class="metric-val text-warning" id="campRemainingNum">3,044</span>
+              <span class="metric-lbl">Remaining in Queue</span>
             </div>
             <div class="campaign-metric">
-              <span class="metric-val text-warning" id="campTodaySentNum">0/100</span>
-              <span class="metric-lbl">Today's Progress</span>
+              <span class="metric-val text-purple" id="campBatchNum">Batch 1 of 31</span>
+              <span class="metric-lbl">Current Batch</span>
+            </div>
+            <div class="campaign-metric">
+              <span class="metric-val text-info" id="campTodaySentNum">0/150</span>
+              <span class="metric-lbl">Today's Outbound</span>
             </div>
           </div>
 
           <!-- Progress Bar -->
           <div class="campaign-progress-box" id="campaignProgressBox" style="display: none;">
             <div class="campaign-progress-header">
-              <span id="campaignProgressStatus">Processing campaign...</span>
+              <span id="campaignProgressStatus">Processing batch...</span>
               <span id="campaignProgressPercentage">0%</span>
             </div>
             <div class="quota-progress-track">
@@ -400,52 +561,362 @@
           </div>
         </div>
 
-        <!-- Curated Database Quick Peek -->
-        <div class="campaign-companies-peek">
-          <div class="peek-header">
-            <span>✨ Included Curated DevOps & Cloud Tech Companies:</span>
-            <span class="peek-sub">Auto-queues next uncontacted batch every day</span>
-          </div>
-          <div class="peek-chips-row">
-            <span class="peek-chip">Razorpay</span>
-            <span class="peek-chip">Postman</span>
-            <span class="peek-chip">Hasura</span>
-            <span class="peek-chip">BrowserStack</span>
-            <span class="peek-chip">Zepto</span>
-            <span class="peek-chip">Cred</span>
-            <span class="peek-chip">Groww</span>
-            <span class="peek-chip">Zerodha</span>
-            <span class="peek-chip">Swiggy</span>
-            <span class="peek-chip">Zomato</span>
-            <span class="peek-chip">PhonePe</span>
-            <span class="peek-chip">Meesho</span>
-            <span class="peek-chip">Atlassian</span>
-            <span class="peek-chip">Datadog</span>
-            <span class="peek-chip">Snowflake</span>
-            <span class="peek-chip">+ 285 more</span>
+        <!-- Fallback Announcement Banner -->
+        <div class="campaign-fallback-banner">
+          <div class="banner-icon">⚡</div>
+          <div class="banner-text">
+            <strong>Autonomous AI Online Transition:</strong> The engine will process 100 HRs daily from <code>hr_contacts.csv</code>. Once all pre-loaded contacts are completed, it automatically transitions to AI Online Discovery & the curated tech database!
           </div>
         </div>
       </div>
 
-      <!-- Custom Company Search Card (Optional) -->
-      <div class="card leads-hero-card">
-        <div class="leads-hero-header">
-          <div class="leads-hero-badge">🔍 Manual & Custom Company Search</div>
-          <h2 class="leads-hero-title">Custom Company Recruiter Search</h2>
-          <p class="leads-hero-desc">Want to target a specific company not in the curated list? Enter custom company names or domains below.</p>
+      <!-- 🚀 MULTI-EMAIL IMPORTER & IMAGE OCR SCANNER (BULK COLD OUTREACH) -->
+      <div class="card bulk-outreach-card" id="bulkOutreachSection" style="margin-top: 24px;">
+        <div class="bulk-card-header">
+          <div class="bulk-title-area">
+            <div class="bulk-badge-row">
+              <span class="campaign-pill" style="background: rgba(99, 102, 241, 0.2); border-color: rgba(99, 102, 241, 0.45); color: #a5b4fc;">⚡ Instant Multi-Email Outbound</span>
+              <span class="campaign-pill" style="background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.45); color: #34d399;">📸 Gemini Multimodal OCR</span>
+              <span class="campaign-pill" style="background: rgba(234, 179, 8, 0.2); border-color: rgba(234, 179, 8, 0.45); color: #fde047;">🛡️ Bounce Shield Active</span>
+            </div>
+            <h2 class="campaign-title" style="margin-top: 8px;">Multi-Email Importer & Image OCR Scanner</h2>
+            <p class="campaign-desc">
+              Have a list of 10, 50, or 200 emails? Or a screenshot of emails from LinkedIn, job postings, Excel, or Slack?
+              Paste them here or drop the screenshot. Gemini AI OCR automatically extracts every email, detects names & companies, prevents duplicates/bounces, and allows you to send cold emails with your resume in one click!
+            </p>
+          </div>
         </div>
 
-        <!-- Search Form Container -->
+        <!-- Input Mode Switcher Tabs -->
+        <div class="bulk-mode-tabs">
+          <button type="button" class="bulk-tab-btn active" id="bulkTabBtnText" data-mode="text">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            <span>✍️ Paste Emails / Raw Text</span>
+          </button>
+          <button type="button" class="bulk-tab-btn" id="bulkTabBtnImage" data-mode="image">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <span>📸 Drop / Paste Screenshot (AI OCR)</span>
+          </button>
+          <button type="button" class="bulk-tab-btn" id="bulkTabBtnCsv" data-mode="csv">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            <span>📁 Import Custom CSV File (Any Format)</span>
+          </button>
+        </div>
+
+        <!-- Tab 1: Raw Text / Multi-email Input -->
+        <div class="bulk-mode-pane" id="bulkPaneText">
+          <div class="bulk-pane-header">
+            <label for="bulkRawTextInput" class="bulk-label">
+              <strong>Paste multiple emails, raw notes, or CSV lines:</strong>
+              <span class="bulk-label-sub">Accepts comma, newline, space-separated emails, or messy text with emails inside!</span>
+            </label>
+            <div class="bulk-quick-examples">
+              <button type="button" class="btn-xs-tag" id="bulkExampleSampleBtn">✨ Insert Example Sample</button>
+            </div>
+          </div>
+          <textarea id="bulkRawTextInput" class="bulk-textarea" rows="5" placeholder="e.g.
+recruiter@meta.com, hr.director@netflix.com, talent@stripe.com
+Or messy text:
+'Reach out to Alex Johnson at alex@uber.com and hr-team@airbnb.com regarding DevOps openings'"></textarea>
+          
+          <div class="bulk-pane-actions">
+            <button type="button" class="btn btn-primary" id="bulkParseTextBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <span>Parse & Stage Emails</span>
+            </button>
+            <button type="button" class="btn btn-ghost" id="bulkClearTextBtn">Clear</button>
+          </div>
+        </div>
+
+        <!-- Tab 2: Image / Screenshot Dropzone (with OCR) -->
+        <div class="bulk-mode-pane" id="bulkPaneImage" style="display: none;">
+          <div class="bulk-dropzone-container" id="bulkDropzoneContainer">
+            <div class="bulk-dropzone" id="bulkImageDropzone" tabindex="0">
+              <div class="bulk-dropzone-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              </div>
+              <h4 class="bulk-dropzone-title">Drag & Drop Image / Screenshot Here</h4>
+              <p class="bulk-dropzone-sub">or <button type="button" class="bulk-browse-link" id="bulkBrowseFileBtn">browse from your computer</button></p>
+              <div class="bulk-paste-hint">
+                <kbd>⌘ + V</kbd> or <kbd>Ctrl + V</kbd> <span>Paste clipboard screenshot directly anywhere here!</span>
+              </div>
+              <input type="file" id="bulkImageFileInput" accept="image/png,image/jpeg,image/webp,image/heic,image/gif" style="display: none;">
+            </div>
+
+            <!-- Preview Card when image is selected/pasted -->
+            <div class="bulk-image-preview-card" id="bulkImagePreviewCard" style="display: none;">
+              <div class="preview-card-left">
+                <img id="bulkPreviewImg" src="" alt="Screenshot Preview" class="bulk-thumb-img">
+                <div class="preview-card-meta">
+                  <div class="preview-file-name" id="bulkPreviewName">screenshot.png</div>
+                  <div class="preview-file-size" id="bulkPreviewSize">0 KB</div>
+                </div>
+              </div>
+              <div class="preview-card-right">
+                <button type="button" class="btn btn-primary" id="bulkExtractImageBtn">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                  <span>Extract Emails with Gemini AI Vision</span>
+                </button>
+                <button type="button" class="btn btn-ghost btn-sm" id="bulkRemoveImageBtn">✕ Remove</button>
+              </div>
+            </div>
+
+            <!-- Loading Spinner for OCR -->
+            <div class="bulk-ocr-loading" id="bulkOcrLoadingState" style="display: none;">
+              <div class="spinner-ring"></div>
+              <div class="ocr-loading-text">
+                <strong>Gemini AI Vision Scanning Screenshot...</strong>
+                <p>Detecting text, emails, contact names, phone numbers, and companies with multi-pass OCR</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 3: Custom CSV Importer (Any Format / Headers) -->
+        <div class="bulk-mode-pane" id="bulkPaneCsv" style="display: none;">
+          <div class="bulk-dropzone-container" id="bulkCsvDropzoneContainer">
+            <div class="bulk-dropzone" id="bulkCsvDropzone" tabindex="0">
+              <div class="bulk-dropzone-icon" style="color: #6366f1;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+              </div>
+              <h4 class="bulk-dropzone-title">Upload Your Own CSV Email File</h4>
+              <p class="bulk-dropzone-sub">or <button type="button" class="bulk-browse-link" id="bulkBrowseCsvBtn">browse from your computer (.csv, .txt, .tsv)</button></p>
+              <div class="bulk-paste-hint" style="margin-top: 10px;">
+                <span>✨ Auto-detects columns: Email, Name, Phone/Number, Company, Title in any format!</span>
+              </div>
+              <input type="file" id="bulkCsvFileInput" accept=".csv,.txt,.tsv,text/csv,text/plain" style="display: none;">
+            </div>
+
+            <!-- Preview Card when CSV is selected -->
+            <div class="bulk-image-preview-card" id="bulkCsvPreviewCard" style="display: none;">
+              <div class="preview-card-left">
+                <div style="width: 52px; height: 52px; border-radius: 8px; background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.4); display: flex; align-items: center; justify-content: center; font-size: 26px;">📊</div>
+                <div class="preview-card-meta">
+                  <div class="preview-file-name" id="bulkCsvPreviewName">contacts.csv</div>
+                  <div class="preview-file-size" id="bulkCsvPreviewSize">0 KB</div>
+                </div>
+              </div>
+              <div class="preview-card-right" style="gap: 12px; display: flex; align-items: center; flex-wrap: wrap;">
+                <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #cbd5e1; cursor: pointer;">
+                  <input type="checkbox" id="bulkCsvSaveToMasterCheckbox" checked style="accent-color: #10b981;">
+                  <span>Merge into Master CSV (3,480+ Contacts)</span>
+                </label>
+                <button type="button" class="btn btn-primary" id="bulkParseCsvBtn">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <span>Parse & Stage CSV Contacts</span>
+                </button>
+                <button type="button" class="btn btn-ghost btn-sm" id="bulkRemoveCsvBtn">✕ Remove</button>
+              </div>
+            </div>
+
+            <!-- Loading Spinner for CSV -->
+            <div class="bulk-ocr-loading" id="bulkCsvLoadingState" style="display: none;">
+              <div class="spinner-ring"></div>
+              <div class="ocr-loading-text">
+                <strong>Parsing CSV & Validating Deliverability...</strong>
+                <p>Cross-referencing with bounce shields and previous sent history</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Staging & Recipient Management Section -->
+        <div class="bulk-staging-section" id="bulkStagingSection" style="display: none;">
+          <div class="bulk-staging-header">
+            <div class="staging-header-title">
+              <h3>📋 Staged Recipients (<span id="bulkStagedSelectedCount">0</span> of <span id="bulkStagedTotalCount">0</span> selected)</h3>
+              <p class="staging-header-sub">Review recipients before sending. Bounced emails are auto-deselected to protect your domain.</p>
+            </div>
+            <div class="staging-header-controls">
+              <button type="button" class="btn btn-xs btn-outline" id="bulkSelectAllBtn">Select All</button>
+              <button type="button" class="btn btn-xs btn-outline" id="bulkSelectValidOnlyBtn">Select Valid Only</button>
+              <button type="button" class="btn btn-xs btn-outline" id="bulkDeselectAllBtn">Deselect All</button>
+              <button type="button" class="btn btn-xs btn-ghost text-danger" id="bulkClearStagedBtn">🗑️ Clear List</button>
+            </div>
+          </div>
+
+          <!-- Staged Stats Pill Bar -->
+          <div class="bulk-staged-stats">
+            <span class="staged-stat-badge stat-all" id="statBadgeAll">Total: 0</span>
+            <span class="staged-stat-badge stat-ready" id="statBadgeReady">Ready to Send: 0</span>
+            <span class="staged-stat-badge stat-contacted" id="statBadgeContacted">Previously Contacted: 0</span>
+            <span class="staged-stat-badge stat-bounced" id="statBadgeBounced">Bounced: 0</span>
+          </div>
+
+          <!-- Staged Recipients Table -->
+          <div class="bulk-staged-table-wrap">
+            <table class="history-table" id="bulkStagedTable">
+              <thead>
+                <tr>
+                  <th style="width: 44px; text-align: center;"><input type="checkbox" id="bulkMasterCheckbox" checked></th>
+                  <th>Recipient / Lead</th>
+                  <th>Email</th>
+                  <th>Phone / Number</th>
+                  <th>Company / Domain</th>
+                  <th>Deliverability Status</th>
+                  <th style="text-align: right;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="bulkStagedTableBody">
+                <!-- Staged rows populated by JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Email Content & Dispatch Controls Card -->
+          <div class="bulk-pitch-card">
+            <div class="bulk-pitch-header">
+              <h4 style="margin: 0; font-size: 16px; font-weight: 700;">✉️ Cold Outreach Pitch & Sender Settings</h4>
+              <div class="bulk-pitch-toggle">
+                <label class="toggle-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+                  <input type="checkbox" id="bulkAiPersonalizeToggle" checked style="accent-color: #6366f1;">
+                  <span style="font-size: 13px; font-weight: 600; color: #a5b4fc;">🤖 AI Hyper-Personalized Pitch per Recipient</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Subject Line -->
+            <div class="form-group" style="margin-top: 14px;">
+              <label class="form-label" style="font-size: 12.5px; font-weight: 600; color: #cbd5e1;">Subject Line:</label>
+              <input type="text" id="bulkOutreachSubject" class="form-input" value="Software Professional Application - Inquiry" placeholder="Subject line...">
+            </div>
+
+            <!-- Custom Template Body -->
+            <div class="form-group" id="bulkTemplateBodyGroup" style="margin-top: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label class="form-label" style="font-size: 12.5px; font-weight: 600; color: #cbd5e1;">
+                  Email Pitch Body:
+                  <span style="font-weight: 400; color: #94a3b8; font-size: 11.5px;">(Placeholders: <code>{name}</code>, <code>{company}</code>, <code>{role}</code>, <code>{portfolio}</code>, <code>{phone}</code>)</span>
+                </label>
+                <button type="button" class="btn-xs-tag" id="bulkResetPitchBtn">Reset to High-Converting Pitch</button>
+              </div>
+              <textarea id="bulkOutreachBody" class="bulk-textarea" rows="7" style="font-size: 13px; line-height: 1.6;"></textarea>
+            </div>
+
+            <!-- Sender Options Row -->
+            <div class="bulk-options-row">
+              <div class="bulk-option-item">
+                <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                  <input type="checkbox" id="bulkAttachResumeCheckbox" checked style="accent-color: #10b981;">
+                  <span id="bulkAttachResumeLabel">📎 Attach Active Resume</span>
+                </label>
+              </div>
+              <div class="bulk-option-item">
+                <label style="font-size: 13px; color: #94a3b8; display: inline-flex; align-items: center; gap: 6px;">
+                  <span>⏱️ Dispatch Pace:</span>
+                  <select id="bulkDispatchPace" class="form-select" style="padding: 4px 10px; font-size: 12.5px; background: rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.15); border-radius: 6px; color: #f1f5f9;">
+                    <option value="safe" selected>🛡️ Safe Human Jitter (12s–25s delay) - Recommended</option>
+                    <option value="turbo">⚡ Turbo Pace (3s–5s delay)</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <!-- Dispatch Action CTA -->
+            <div class="bulk-dispatch-action-bar">
+              <button type="button" class="btn btn-primary btn-lg" id="bulkStartDispatchBtn" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); box-shadow: 0 0 25px rgba(99, 102, 241, 0.4); font-weight: 700;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                <span>🚀 Send Cold Emails to <strong id="bulkDispatchCountLabel">0</strong> Recipients</span>
+              </button>
+              <button type="button" class="btn btn-danger btn-lg" id="bulkStopDispatchBtn" style="display: none;">
+                <span>⏹️ Stop Bulk Dispatch</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Live Progress & Execution Monitor -->
+          <div class="bulk-monitor-card" id="bulkMonitorCard" style="display: none; margin-top: 18px;">
+            <div class="bulk-monitor-header">
+              <div class="monitor-title">
+                <span class="pulse-indicator"></span>
+                <strong>Live Dispatch Progress:</strong>
+                <span id="bulkMonitorStatusText">Sending emails...</span>
+              </div>
+              <div class="monitor-percentage" id="bulkMonitorPercentage">0%</div>
+            </div>
+            <div class="quota-progress-track" style="height: 10px; margin: 12px 0;">
+              <div class="quota-progress-fill" id="bulkMonitorProgressBar" style="width: 0%; background: linear-gradient(90deg, #6366f1, #10b981);"></div>
+            </div>
+            <div class="bulk-monitor-stats">
+              <span class="text-info">Sent: <strong id="bulkStatSent">0</strong></span>
+              <span class="text-danger">Failed: <strong id="bulkStatFailed">0</strong></span>
+              <span class="text-warning">Remaining: <strong id="bulkStatRemaining">0</strong></span>
+              <span class="text-purple">Total: <strong id="bulkStatTotal">0</strong></span>
+            </div>
+            <div class="bulk-terminal-log" id="bulkTerminalLog">
+              <div class="log-entry log-info">[System] Bulk Cold Mailer initialized. Ready.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 📋 INTERACTIVE HR CONTACTS DIRECTORY & QUEUE TABLE -->
+      <div class="card leads-dashboard-card" style="margin-top: 24px;">
+        <div class="leads-dashboard-header">
+          <div>
+            <h3 class="section-title" id="hrDirectoryTitle" style="margin-bottom: 4px;">📋 HR & Recruiter Contact Directory (3,044 Contacts)</h3>
+            <p class="card-subtitle">Explore pre-loaded HR leaders, check their dispatch status, or trigger an instant direct cold email.</p>
+          </div>
+          <div class="leads-header-controls">
+            <div class="hr-search-box">
+              <input type="text" id="hrSearchInput" class="form-input" placeholder="🔍 Filter by Name, Company, Title, or Email..." style="width: 280px; padding: 6px 12px; font-size: 0.85rem;">
+            </div>
+            <div class="leads-filter-pills" id="hrFilterPills">
+              <button type="button" class="filter-pill active" data-filter="ALL">All (<span id="hrFilterAllCount">1842</span>)</button>
+              <button type="button" class="filter-pill" data-filter="PENDING">Pending (<span id="hrFilterPendingCount">1842</span>)</button>
+              <button type="button" class="filter-pill" data-filter="SENT">Sent (<span id="hrFilterSentCount">0</span>)</button>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="refreshHRListBtn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              <span>Refresh</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="history-table-container">
+          <table class="history-table" id="hrContactsTable">
+            <thead>
+              <tr>
+                <th style="width: 60px;">#</th>
+                <th>HR Name & Title</th>
+                <th>Company</th>
+                <th>Email Address</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="hrContactsTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="hr-pagination-bar" id="hrPaginationBar">
+          <button type="button" class="btn btn-ghost btn-sm" id="hrPrevPageBtn">◀ Previous</button>
+          <span class="pagination-info" id="hrPageInfo">Page 1 of 37</span>
+          <button type="button" class="btn btn-ghost btn-sm" id="hrNextPageBtn">Next ▶</button>
+        </div>
+      </div>
+
+      <!-- Custom Company Search Card (Optional Manual AI Finder) -->
+      <div class="card leads-hero-card" style="margin-top: 24px;">
+        <div class="leads-hero-header">
+          <div class="leads-hero-badge">🔍 AI Online Recruiter Finder</div>
+          <h2 class="leads-hero-title">Discover Additional Recruiters Online</h2>
+          <p class="leads-hero-desc">Want to find recruiters at specific tech companies online? Enter company names or domains below to search with AI.</p>
+        </div>
+
         <form id="leadsSearchForm" class="leads-search-form">
           <div class="form-group">
             <label class="form-label" for="leadsCompanyInput">
-              <span>Target Companies or Domains *</span>
+              <span>Target Companies or Domains</span>
               <span class="form-hint">(Single company or bulk comma/line-separated list)</span>
             </label>
             <textarea id="leadsCompanyInput" class="form-textarea" rows="2" placeholder="e.g. Razorpay, Postman, Hasura, Swiggy, Cred, Zepto, Zerodha, Atlassian..." required></textarea>
           </div>
 
-          <!-- Quick Preset Chips -->
           <div class="leads-presets-bar">
             <span class="leads-preset-label">⚡ Quick Target Hubs:</span>
             <div class="leads-preset-chips">
@@ -456,18 +927,7 @@
             </div>
           </div>
 
-          <div class="form-row" style="margin-top: 14px;">
-            <div class="form-group form-col">
-              <label class="form-label" for="leadsTargetRole">Target Role</label>
-              <input type="text" id="leadsTargetRole" class="form-input" placeholder="e.g. DevOps & Cloud Engineer">
-            </div>
-            <div class="form-group form-col">
-              <label class="form-label" for="leadsLocation">Target Location / Domain</label>
-              <input type="text" id="leadsLocation" class="form-input" placeholder="e.g. India / Remote / Bengaluru / Pune">
-            </div>
-          </div>
-
-          <div class="leads-search-actions">
+          <div class="leads-search-actions" style="margin-top: 14px;">
             <label class="auto-send-checkbox-label">
               <input type="checkbox" id="leadsAutoSendCheckbox">
               <span>⚡ Auto-Dispatch Cold Emails with Resume Immediately Upon Finding</span>
@@ -481,234 +941,6 @@
             </div>
           </div>
         </form>
-      </div>
-
-      <!-- Discovered Leads Dashboard -->
-      <div class="card leads-dashboard-card">
-        <div class="leads-dashboard-header">
-          <div class="leads-stats-row">
-            <div class="leads-stat-pill">
-              <span class="stat-num" id="leadsTotalCount">0</span>
-              <span class="stat-lbl">Total Discovered</span>
-            </div>
-            <div class="leads-stat-pill">
-              <span class="stat-num text-warning" id="leadsPendingCount">0</span>
-              <span class="stat-lbl">Pending Review</span>
-            </div>
-            <div class="leads-stat-pill">
-              <span class="stat-num text-success" id="leadsSentCount">0</span>
-              <span class="stat-lbl">Emails Dispatched</span>
-            </div>
-          </div>
-
-          <div class="leads-header-controls">
-            <div class="leads-filter-pills" id="leadsFilterPills">
-              <button type="button" class="filter-pill active" data-filter="ALL">All (<span id="filterAllCount">0</span>)</button>
-              <button type="button" class="filter-pill" data-filter="PENDING">Pending (<span id="filterPendingCount">0</span>)</button>
-              <button type="button" class="filter-pill" data-filter="SENT">Sent (<span id="filterSentCount">0</span>)</button>
-            </div>
-            <button class="btn btn-secondary btn-sm" id="refreshLeadsBtn">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-              <span>Refresh</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Bulk Action Bar -->
-        <div class="leads-bulk-bar" id="leadsBulkBar" style="display: none;">
-          <div class="bulk-bar-left">
-            <input type="checkbox" id="selectAllLeadsCheckbox">
-            <label for="selectAllLeadsCheckbox" id="selectedLeadsLabel">Select All</label>
-          </div>
-          <div class="bulk-bar-actions">
-            <button type="button" class="btn btn-primary btn-sm" id="batchSendLeadsBtn">
-              <span>⚡ Batch Send Selected (<span id="selectedCountNum">0</span>)</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Leads List Container -->
-        <div class="leads-list-container" id="leadsListContainer">
-          <div class="leads-empty-state" id="leadsEmptyState">
-            <div class="empty-icon">🎯</div>
-            <h3 class="empty-title">No Recruiter Leads Yet</h3>
-            <p class="empty-desc">Enter target companies above or pick a quick tech hub preset to discover HR & Recruiter contact emails and draft personalized outreach pitches.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══════════════════════════════════════════════ -->
-    <!-- AI PERSONA & CANDIDATE PROFILE SECTION -->
-    <!-- ═══════════════════════════════════════════════ -->
-    <section class="profile-section" id="profileSection" style="display: none;">
-      <!-- Hero Card -->
-      <div class="card profile-hero-card">
-        <div class="profile-hero-header">
-          <div class="profile-hero-badge">Universal Role Configurator</div>
-          <h2 class="profile-hero-title">Customize Your Job Persona & AI Pitch</h2>
-          <p class="profile-hero-desc">Tailor your role, technical skills, CV, and custom pitch instructions. Every email and WhatsApp message generated by AI will adapt specifically to your background.</p>
-        </div>
-
-        <!-- 1-Click Role Presets Bar -->
-        <div class="preset-selector-container">
-          <div class="preset-selector-header">
-            <div class="preset-selector-title">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-              <span>1-Click Role Presets (Select to auto-populate or customize freely):</span>
-            </div>
-            <span class="preset-badge" id="activePresetBadge">DevOps & Cloud Engineer</span>
-          </div>
-          <div class="preset-pills-grid" id="presetPillsGrid">
-            <button type="button" class="preset-pill active" data-preset="devops">🚀 DevOps & Cloud</button>
-            <button type="button" class="preset-pill" data-preset="fullstack">💻 Full Stack Dev</button>
-            <button type="button" class="preset-pill" data-preset="backend">⚙️ Backend / API</button>
-            <button type="button" class="preset-pill" data-preset="frontend">🎨 Frontend / UI</button>
-            <button type="button" class="preset-pill" data-preset="ai_ml">🧠 AI / ML Engineer</button>
-            <button type="button" class="preset-pill" data-preset="data_scientist">📊 Data Scientist</button>
-            <button type="button" class="preset-pill" data-preset="qa_sdet">🧪 QA / SDET</button>
-            <button type="button" class="preset-pill" data-preset="custom">🛠️ Custom Persona</button>
-          </div>
-        </div>
-
-        <!-- Profile Configuration Form -->
-        <form id="profileForm" class="profile-form">
-          <div class="profile-grid">
-            <!-- Left Column: Personal Info & Contact -->
-            <div class="profile-col">
-              <div class="profile-card-section">
-                <div class="section-title-sm">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                  <span>1. Personal & Contact Details</span>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" for="profileName">Full Name *</label>
-                  <input type="text" id="profileName" class="form-input" placeholder="e.g. Ajay Autade" required>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" for="profileTitle">Professional Headline / Job Title *</label>
-                  <input type="text" id="profileTitle" class="form-input" placeholder="e.g. DevOps Engineer | Cloud & Platform Specialist" required>
-                </div>
-
-                <div class="form-row">
-                  <div class="form-group form-col">
-                    <label class="form-label" for="profileEmail">Email *</label>
-                    <input type="email" id="profileEmail" class="form-input" placeholder="you@example.com" required>
-                  </div>
-                  <div class="form-group form-col">
-                    <label class="form-label" for="profilePhone">Phone / WhatsApp *</label>
-                    <input type="text" id="profilePhone" class="form-input" placeholder="+91 9545034120">
-                  </div>
-                </div>
-
-                <div class="form-row">
-                  <div class="form-group form-col">
-                    <label class="form-label" for="profilePortfolio">Portfolio / Website</label>
-                    <input type="url" id="profilePortfolio" class="form-input" placeholder="https://yourportfolio.com">
-                  </div>
-                  <div class="form-group form-col">
-                    <label class="form-label" for="profileLinkedin">LinkedIn URL</label>
-                    <input type="url" id="profileLinkedin" class="form-input" placeholder="https://linkedin.com/in/username">
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" for="profileGithub">GitHub Profile URL</label>
-                  <input type="url" id="profileGithub" class="form-input" placeholder="https://github.com/username">
-                </div>
-
-                <!-- Active Resume Status Card -->
-                <div class="profile-resume-box">
-                  <div class="profile-resume-info">
-                    <div class="profile-resume-icon">📄</div>
-                    <div>
-                      <div class="profile-resume-title" id="profileResumeTitle">No Resume PDF Attached</div>
-                      <div class="profile-resume-sub">AI uses your resume PDF to extract deep real-world achievements</div>
-                    </div>
-                  </div>
-                  <button type="button" class="btn btn-secondary btn-sm" id="profileUploadResumeBtn">
-                    <span>Attach / Change Resume</span>
-                  </button>
-                  <input type="file" id="profileResumeInput" accept=".pdf,.doc,.docx" hidden>
-                </div>
-              </div>
-            </div>
-
-            <!-- Right Column: Skills, AI Prompts & Signature -->
-            <div class="profile-col">
-              <div class="profile-card-section">
-                <div class="section-title-sm">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                  <span>2. Target Roles & Core Strengths</span>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" for="profileTargetRoles">
-                    Target Job Roles / Keywords
-                    <span class="form-hint">(Used for role matching)</span>
-                  </label>
-                  <input type="text" id="profileTargetRoles" class="form-input" placeholder="e.g. DevOps Engineer, Cloud Engineer, SRE, Platform Engineer">
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" for="profileCoreSkills">
-                    Core Technical Strengths & Skills
-                    <span class="form-hint">(AI weaves these into applications)</span>
-                  </label>
-                  <textarea id="profileCoreSkills" class="form-textarea" rows="2" placeholder="e.g. AWS, Kubernetes, Docker, Terraform, CI/CD, Linux, Python"></textarea>
-                </div>
-
-                <div class="section-title-sm" style="margin-top: 18px;">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                  <span>3. Custom AI Pitch Instructions & Context</span>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" for="profileCustomAiInstructions">
-                    Specific Achievements & Pitch Context
-                    <span class="form-hint">(Tell AI what to highlight)</span>
-                  </label>
-                  <textarea id="profileCustomAiInstructions" class="form-textarea" rows="3" placeholder="e.g. Highlight hands-on experience deploying Kubernetes on AWS, cutting deployment times by 60%, and 15-day notice period."></textarea>
-                </div>
-
-                <div class="form-group">
-                  <div class="signature-header">
-                    <label class="form-label" for="profileSignature">Email Signature Block</label>
-                    <button type="button" class="btn-link" id="autoGenerateSigBtn">✨ Auto-Generate from Profile</button>
-                  </div>
-                  <textarea id="profileSignature" class="form-textarea" rows="4" placeholder="Your custom email signature..."></textarea>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Bottom Action Bar -->
-          <div class="profile-actions-bar">
-            <button type="button" class="btn btn-secondary" id="resetPresetBtn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-              <span>Reset to Selected Preset</span>
-            </button>
-            <div class="profile-actions-right">
-              <button type="submit" class="btn btn-primary btn-lg" id="saveProfileBtn">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                <span>Save Profile & Apply Changes</span>
-              </button>
-            </div>
-          </div>
-        </form>
-
-        <!-- Live AI Persona Preview Card -->
-        <div class="profile-preview-card">
-          <div class="preview-header">
-            <span class="preview-tag">Live AI Persona Preview</span>
-            <span class="preview-subtitle">How AI will introduce you in application emails:</span>
-          </div>
-          <div class="preview-box" id="personaLivePreview">
-            <!-- Dynamic preview -->
-          </div>
-        </div>
       </div>
     </section>
 
@@ -1079,7 +1311,231 @@
         </button>
       </div>
     </section>
-  </main>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- BOUNCE SHIELD & DELIVERY FAILURE AUTO-CLEANER -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <section class="bounces-section" id="bouncesSection" style="display: none; flex-direction: column; gap: 24px;">
+      <div class="card" style="padding: 24px; border: 1px solid rgba(239, 68, 68, 0.25); background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(15, 23, 42, 0.6) 100%);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+          <div>
+            <div style="display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 20px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; font-size: 12px; font-weight: 600; margin-bottom: 12px;">
+              <span class="pulse-dot" style="background: #10b981;"></span> Auto-Cleaner Active (Sweeps Inbox Every 1m)
+            </div>
+            <h2 style="font-size: 20px; font-weight: 700; margin: 0 0 8px 0; color: #fff;">🛡️ Delivery Failure & Bounce Shield</h2>
+            <p style="color: var(--text-muted); font-size: 13.5px; max-width: 680px; margin: 0; line-height: 1.6;">
+              Automatically cleans "Address not found", temporary delivery delays, and Mail Delivery Subsystem error emails from your Gmail inbox via IMAP so you never have to manually delete them. Also verifies DNS MX records and suppresses failed emails so dead addresses are never emailed again.
+            </p>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <button class="btn btn-primary" id="cleanBouncesNowBtn" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); box-shadow: 0 0 20px rgba(239, 68, 68, 0.35);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              <span>🧹 Clean Gmail Inbox Now</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Stats Counters -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-top: 20px;">
+          <div style="padding: 14px; border-radius: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08);">
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Trashed from Inbox</div>
+            <div id="statCleanedBounces" style="font-size: 26px; font-weight: 800; color: #f87171; margin-top: 4px;">0</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Delivery errors auto-deleted</div>
+          </div>
+          <div style="padding: 14px; border-radius: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08);">
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Suppressed in Blacklist</div>
+            <div id="statTotalBounced" style="font-size: 26px; font-weight: 800; color: #fbbf24; margin-top: 4px;">0</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Dead addresses permanently blocked</div>
+          </div>
+          <div style="padding: 14px; border-radius: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08);">
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Last Sweep Time</div>
+            <div id="statLastCleaned" style="font-size: 14px; font-weight: 700; color: #a5b4fc; margin-top: 8px;">Just now</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">IMAP Daemon (Every 1m)</div>
+          </div>
+        </div>
+
+        <!-- 2-Step Native Gmail Filter Recommendation -->
+        <div style="margin-top: 20px; padding: 16px; border-radius: 10px; border: 1px solid rgba(124, 92, 252, 0.3); background: rgba(124, 92, 252, 0.04);">
+          <h4 style="font-size: 14.5px; font-weight: 700; color: #c4b5fd; margin: 0 0 6px 0;">
+            ⚡ 24/7 Google Cloud Filter (Zero Delays Even When Computer is Off)
+          </h4>
+          <p style="font-size: 12.5px; color: var(--text-muted); margin: 0 0 10px 0;">
+            Set a 1-click filter directly in Gmail so Google's servers delete delivery errors the millisecond they bounce:
+          </p>
+          <div style="display: flex; align-items: center; gap: 8px; background: rgba(0, 0, 0, 0.4); padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
+            <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Search:</span>
+            <code style="color: #67e8f9; font-size: 12.5px; flex: 1;" id="gmailFilterQuery">from:(mailer-daemon@googlemail.com OR postmaster)</code>
+            <button class="btn btn-ghost btn-sm" id="copyGmailFilterBtn" style="padding: 3px 8px; font-size: 11px;">Copy Query</button>
+          </div>
+          <div style="font-size: 11.5px; color: #94a3b8; margin-top: 8px;">
+            👉 In Gmail: Search ⚙️ → Paste query in "From" → <strong>Create filter</strong> → Check <strong>"Delete it"</strong>.
+          </div>
+        </div>
+
+        <!-- Blacklisted Addresses Table -->
+        <div style="margin-top: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div>
+              <h4 style="font-size: 14.5px; font-weight: 700; margin: 0; color: #fff;">🚫 Suppressed / Bounced Recipient Registry</h4>
+              <p style="font-size: 11.5px; color: var(--text-muted); margin: 2px 0 0 0;">These addresses failed delivery and will never be contacted again.</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="refreshBouncesBtn">🔄 Refresh List</button>
+          </div>
+          <div style="overflow-x: auto; max-height: 280px; overflow-y: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: left;">
+              <thead>
+                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-muted);">
+                  <th style="padding: 8px;">Recipient Email</th>
+                  <th style="padding: 8px;">Failure Reason</th>
+                  <th style="padding: 8px;">Bounced Date</th>
+                  <th style="padding: 8px;">Status</th>
+                </tr>
+              </thead>
+              <tbody id="bouncedListTbody">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- 🌐 LIVE JOB RADAR (ATS JOB SOURCING SECTION) -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <section class="livejobs-section" id="livejobsSection" style="display: none; flex-direction: column; gap: 24px;">
+      <!-- Hero Card -->
+      <div class="card livejobs-hero-card">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+          <div>
+            <div style="display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 20px; background: rgba(6, 182, 212, 0.15); border: 1px solid rgba(6, 182, 212, 0.3); color: #22d3ee; font-size: 12px; font-weight: 600; margin-bottom: 12px;">
+              <span class="pulse-dot" style="background: #06b6d4;"></span> Autonomous ATS Sourcing & Keyword Match Active
+            </div>
+            <h2 style="font-size: 20px; font-weight: 700; margin: 0 0 8px 0; color: #fff;">🌐 Live ATS Job Radar & Automated Discovery</h2>
+            <p style="color: var(--text-muted); font-size: 13.5px; max-width: 720px; margin: 0; line-height: 1.6;">
+              Continuously sources live, active DevOps, Cloud, SRE, and Platform Engineering openings directly from public career APIs (Greenhouse, Ashby, Lever, Remotive). Calculates candidate ATS match scores, generates tailored AI cover emails, and enables 1-click cold applications with resume attached.
+            </p>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+            <button class="btn btn-primary" id="scanLiveJobsBtn" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); box-shadow: 0 0 20px rgba(6, 182, 212, 0.35); font-weight: 700;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+              <span id="scanLiveJobsBtnText">⚡ Scan Live ATS Boards Now</span>
+            </button>
+            <div id="liveJobsAutoRefreshBadge" style="font-size: 11px; color: #94a3b8; display: flex; align-items: center; gap: 6px;">
+              <span style="color: #38bdf8;">🔄 Auto-refreshes daily</span>
+              <span id="liveJobsRefreshTimeText">• Next daily sync in 24h</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Metric Stat Boxes -->
+        <div class="livejobs-stats-grid">
+          <div class="livejobs-stat-box">
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Live Postings Sourced</div>
+            <div id="statLiveTotal" class="livejobs-stat-num" style="color: #22d3ee;">0</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Across top tech platforms</div>
+          </div>
+          <div class="livejobs-stat-box">
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">High ATS Match (75%+)</div>
+            <div id="statLiveHighMatch" class="livejobs-stat-num" style="color: #34d399;">0</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Strong skill alignment</div>
+          </div>
+          <div class="livejobs-stat-box">
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Monitored Companies</div>
+            <div id="statLiveCompanies" class="livejobs-stat-num" style="color: #a5b4fc;">25+</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Greenhouse, Ashby, Lever</div>
+          </div>
+          <div class="livejobs-stat-box">
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Applications Dispatched</div>
+            <div id="statLiveApplied" class="livejobs-stat-num" style="color: #fbbf24;">0</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Direct with resume</div>
+          </div>
+        </div>
+
+        <!-- Filter & Search Toolbar -->
+        <div class="livejobs-filter-panel">
+          <input type="text" id="liveJobsSearch" class="livejobs-search-input" placeholder="🔍 Search by Title, Company, or Skill (e.g. Kubernetes, AWS, SRE)...">
+          
+          <select id="liveJobsLocationFilter" class="livejobs-select">
+            <option value="ALL">📍 All Locations</option>
+            <option value="INDIA">🇮🇳 India Roles Only</option>
+            <option value="REMOTE">🌍 100% Remote / Global</option>
+          </select>
+
+          <select id="liveJobsAtsFilter" class="livejobs-select">
+            <option value="0">🎯 All Match Scores</option>
+            <option value="70">🔥 70%+ ATS Match</option>
+            <option value="75">⚡ 75%+ ATS Match</option>
+            <option value="80">🚀 80%+ ATS Match</option>
+          </select>
+
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <button type="button" class="btn btn-ghost btn-sm livejobs-tab-btn active" data-status="ACTIVE" style="font-size: 12px; padding: 6px 12px;">Active</button>
+            <button type="button" class="btn btn-ghost btn-sm livejobs-tab-btn" data-status="SAVED" style="font-size: 12px; padding: 6px 12px;">⭐ Saved</button>
+            <button type="button" class="btn btn-ghost btn-sm livejobs-tab-btn" data-status="APPLIED" style="font-size: 12px; padding: 6px 12px;">✅ Applied</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Jobs Cards Grid -->
+      <div id="liveJobsGrid" class="livejobs-grid">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Pagination -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding: 8px 0;">
+        <span id="liveJobsPageInfo" style="font-size: 13px; color: var(--text-muted);">Page 1 of 1 (0 jobs)</span>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary btn-sm" id="liveJobsPrevBtn" disabled>← Previous</button>
+          <button class="btn btn-secondary btn-sm" id="liveJobsNextBtn" disabled>Next →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- AI Pitch & Application Review Modal -->
+    <div class="modal-overlay" id="jobPitchModal" style="display: none;">
+      <div class="modal modal-lg">
+        <div class="modal-header">
+          <div>
+            <h3 id="pitchModalTitle" style="margin: 0; font-size: 18px; color: #fff;">✨ AI-Tailored Application Pitch</h3>
+            <p id="pitchModalSubtitle" style="margin: 4px 0 0 0; font-size: 12.5px; color: var(--text-muted);">Review and customize your tailored cold application email before dispatch.</p>
+          </div>
+          <button class="btn-icon" id="closePitchModalBtn">✕</button>
+        </div>
+        <div class="modal-body job-pitch-modal-body">
+          <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 240px;">
+              <label class="form-label" style="font-size: 12px; font-weight: 600; color: #cbd5e1;">Recipient Email</label>
+              <input type="email" id="pitchRecipientInput" class="form-input" style="width: 100%;">
+            </div>
+            <div style="flex: 2; min-width: 320px;">
+              <label class="form-label" style="font-size: 12px; font-weight: 600; color: #cbd5e1;">Subject Line</label>
+              <input type="text" id="pitchSubjectInput" class="form-input" style="width: 100%;">
+            </div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label class="form-label" style="font-size: 12px; font-weight: 600; color: #cbd5e1; margin: 0;">Email Body</label>
+              <button class="btn-link" id="regeneratePitchBtn" style="font-size: 11.5px; color: #22d3ee;">🔄 Regenerate with AI</button>
+            </div>
+            <textarea id="pitchBodyInput" class="pitch-textarea" placeholder="Generating tailored pitch..."></textarea>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 8px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25);">
+            <div style="font-size: 12px; color: #34d399; display: flex; align-items: center; gap: 6px;">
+              <span>📎</span> <span>Resume Attached: <strong id="modalResumeName">Candidate_Resume.pdf</strong></span>
+            </div>
+            <span style="font-size: 11px; color: var(--text-muted);">Auto 4-day follow-up enabled</span>
+          </div>
+        </div>
+        <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button class="btn btn-secondary" id="cancelPitchModalBtn">Cancel</button>
+          <button class="btn btn-primary" id="sendPitchApplicationBtn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); font-weight: 700;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            <span>🚀 Send Application Email</span>
+          </button>
+        </div>
+      </div>
+    </div>
 
   <!-- Email Details Modal for Auto-Pilot History -->
   <div class="modal-overlay" id="emailDetailsModal" style="display: none;">
@@ -1170,6 +1626,6 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=2.6"></script>
 </body>
 </html>

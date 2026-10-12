@@ -4,22 +4,97 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   // ── Element References ──
+  // ── Element References ──
   const tabAutoPilot = document.getElementById('tabAutoPilot');
   const tabManual = document.getElementById('tabManual');
   const tabLeads = document.getElementById('tabLeads');
   const tabFollowUps = document.getElementById('tabFollowUps');
   const tabWhatsApp = document.getElementById('tabWhatsApp');
-  const tabProfile = document.getElementById('tabProfile');
+  const tabBounces = document.getElementById('tabBounces');
+  const tabLiveJobs = document.getElementById('tabLiveJobs');
   const autopilotSection = document.getElementById('autopilotSection');
   const manualSectionContainer = document.getElementById('manualSectionContainer');
   const leadsSection = document.getElementById('leadsSection');
   const followupsSection = document.getElementById('followupsSection');
   const whatsappSection = document.getElementById('whatsappSection');
-  const profileSection = document.getElementById('profileSection');
+  const bouncesSection = document.getElementById('bouncesSection');
+  const livejobsSection = document.getElementById('livejobsSection');
   const leadsTabBadge = document.getElementById('leadsTabBadge');
   const followUpsTabBadge = document.getElementById('followUpsTabBadge');
   const whatsAppTabBadge = document.getElementById('whatsAppTabBadge');
-  const profileRoleBadge = document.getElementById('profileRoleBadge');
+  const bouncesTabBadge = document.getElementById('bouncesTabBadge');
+  const liveJobsTabBadge = document.getElementById('liveJobsTabBadge');
+
+  // WhatsApp Filter Elements
+  const whatsAppSearchInput = document.getElementById('whatsAppSearchInput');
+  const whatsAppStatusFilters = document.getElementById('whatsAppStatusFilters');
+  const waAllCount = document.getElementById('waAllCount');
+  const waPendingCount = document.getElementById('waPendingCount');
+  const waSentCount = document.getElementById('waSentCount');
+
+  // Bounce Shield Elements
+  const cleanBouncesNowBtn = document.getElementById('cleanBouncesNowBtn');
+  const refreshBouncesBtn = document.getElementById('refreshBouncesBtn');
+  const copyGmailFilterBtn = document.getElementById('copyGmailFilterBtn');
+  const statCleanedBounces = document.getElementById('statCleanedBounces');
+  const statTotalBounced = document.getElementById('statTotalBounced');
+  const statLastCleaned = document.getElementById('statLastCleaned');
+  const bouncedListTbody = document.getElementById('bouncedListTbody');
+
+  // Live Job Radar Elements
+  const scanLiveJobsBtn = document.getElementById('scanLiveJobsBtn');
+  const scanLiveJobsBtnText = document.getElementById('scanLiveJobsBtnText');
+  const statLiveTotal = document.getElementById('statLiveTotal');
+  const statLiveHighMatch = document.getElementById('statLiveHighMatch');
+  const statLiveCompanies = document.getElementById('statLiveCompanies');
+  const statLiveApplied = document.getElementById('statLiveApplied');
+  const liveJobsSearch = document.getElementById('liveJobsSearch');
+  const liveJobsLocationFilter = document.getElementById('liveJobsLocationFilter');
+  const liveJobsAtsFilter = document.getElementById('liveJobsAtsFilter');
+  const liveJobsGrid = document.getElementById('liveJobsGrid');
+  const liveJobsPageInfo = document.getElementById('liveJobsPageInfo');
+  const liveJobsPrevBtn = document.getElementById('liveJobsPrevBtn');
+  const liveJobsNextBtn = document.getElementById('liveJobsNextBtn');
+
+  // Pitch Modal Elements
+  const jobPitchModal = document.getElementById('jobPitchModal');
+  const pitchModalTitle = document.getElementById('pitchModalTitle');
+  const pitchModalSubtitle = document.getElementById('pitchModalSubtitle');
+  const pitchRecipientInput = document.getElementById('pitchRecipientInput');
+  const pitchSubjectInput = document.getElementById('pitchSubjectInput');
+  const pitchBodyInput = document.getElementById('pitchBodyInput');
+  const regeneratePitchBtn = document.getElementById('regeneratePitchBtn');
+  const sendPitchApplicationBtn = document.getElementById('sendPitchApplicationBtn');
+  const cancelPitchModalBtn = document.getElementById('cancelPitchModalBtn');
+  const closePitchModalBtn = document.getElementById('closePitchModalBtn');
+
+  let currentLivePage = 1;
+  let totalLivePages = 1;
+  let currentLiveStatus = 'ACTIVE';
+  let currentLiveLocation = 'ALL';
+  let currentLiveMinAts = 0;
+  let currentLiveSearch = '';
+  let activePitchJobId = null;
+  let liveSearchTimer = null;
+
+  // Extracted HR Directory Elements
+  const extractedHrCard = document.getElementById('extractedHrCard');
+  const extractedHrTotalBadge = document.getElementById('extractedHrTotalBadge');
+  const downloadExtractedHrBtn = document.getElementById('downloadExtractedHrBtn');
+  const topDownloadExtractedHrBtn = document.getElementById('topDownloadExtractedHrBtn');
+  const refreshExtractedHrBtn = document.getElementById('refreshExtractedHrBtn');
+  const statExtractedTotal = document.getElementById('statExtractedTotal');
+  const statExtractedEmail = document.getElementById('statExtractedEmail');
+  const statExtractedName = document.getElementById('statExtractedName');
+  const statExtractedCompany = document.getElementById('statExtractedCompany');
+  const extractedHrSearchInput = document.getElementById('extractedHrSearchInput');
+  const extractedHrClearSearchBtn = document.getElementById('extractedHrClearSearchBtn');
+  const extractedHrEmpty = document.getElementById('extractedHrEmpty');
+  const extractedHrTable = document.getElementById('extractedHrTable');
+  const extractedHrTableBody = document.getElementById('extractedHrTableBody');
+  const extractedHrPageInfo = document.getElementById('extractedHrPageInfo');
+  const extractedHrPrevBtn = document.getElementById('extractedHrPrevBtn');
+  const extractedHrNextBtn = document.getElementById('extractedHrNextBtn');
 
   // Lead Finder Form & Control Elements
   const leadsSearchForm = document.getElementById('leadsSearchForm');
@@ -44,11 +119,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const leadsEmptyState = document.getElementById('leadsEmptyState');
   const refreshLeadsBtn = document.getElementById('refreshLeadsBtn');
 
-  // Autonomous Daily 100 Campaign Elements
+  // Autonomous Daily 100 HR Campaign Elements
+  const campSourceBadge = document.getElementById('campSourceBadge');
   const startDailyCampaignBtn = document.getElementById('startDailyCampaignBtn');
+  const startDailyCampaignBtnText = document.getElementById('startDailyCampaignBtnText');
   const stopDailyCampaignBtn = document.getElementById('stopDailyCampaignBtn');
+  const resetCampaignBtn = document.getElementById('resetCampaignBtn');
+  const campTotalHRNum = document.getElementById('campTotalHRNum');
   const campContactedNum = document.getElementById('campContactedNum');
   const campRemainingNum = document.getElementById('campRemainingNum');
+  const campBatchNum = document.getElementById('campBatchNum');
   const campTodaySentNum = document.getElementById('campTodaySentNum');
   const campaignProgressBox = document.getElementById('campaignProgressBox');
   const campaignProgressStatus = document.getElementById('campaignProgressStatus');
@@ -56,37 +136,33 @@ document.addEventListener('DOMContentLoaded', () => {
   const campaignProgressBar = document.getElementById('campaignProgressBar');
   const campaignCurrentLog = document.getElementById('campaignCurrentLog');
 
-  // Profile Form Elements
-  const profileForm = document.getElementById('profileForm');
-  const profileName = document.getElementById('profileName');
-  const profileTitle = document.getElementById('profileTitle');
-  const profileEmail = document.getElementById('profileEmail');
-  const profilePhone = document.getElementById('profilePhone');
-  const profilePortfolio = document.getElementById('profilePortfolio');
-  const profileLinkedin = document.getElementById('profileLinkedin');
-  const profileGithub = document.getElementById('profileGithub');
-  const profileTargetRoles = document.getElementById('profileTargetRoles');
-  const profileCoreSkills = document.getElementById('profileCoreSkills');
-  const profileCustomAiInstructions = document.getElementById('profileCustomAiInstructions');
-  const profileSignature = document.getElementById('profileSignature');
-  const activePresetBadge = document.getElementById('activePresetBadge');
-  const presetPillsGrid = document.getElementById('presetPillsGrid');
-  const resetPresetBtn = document.getElementById('resetPresetBtn');
-  const autoGenerateSigBtn = document.getElementById('autoGenerateSigBtn');
-  const saveProfileBtn = document.getElementById('saveProfileBtn');
-  const personaLivePreview = document.getElementById('personaLivePreview');
-  const profileResumeTitle = document.getElementById('profileResumeTitle');
-  const profileUploadResumeBtn = document.getElementById('profileUploadResumeBtn');
-  const profileResumeInput = document.getElementById('profileResumeInput');
+  // HR Contacts Directory Table Elements
+  const hrSearchInput = document.getElementById('hrSearchInput');
+  const hrFilterPills = document.getElementById('hrFilterPills');
+  const hrFilterAllCount = document.getElementById('hrFilterAllCount');
+  const hrFilterPendingCount = document.getElementById('hrFilterPendingCount');
+  const hrFilterSentCount = document.getElementById('hrFilterSentCount');
+  const refreshHRListBtn = document.getElementById('refreshHRListBtn');
+  const hrContactsTableBody = document.getElementById('hrContactsTableBody');
+  const hrPrevPageBtn = document.getElementById('hrPrevPageBtn');
+  const hrNextPageBtn = document.getElementById('hrNextPageBtn');
+  const hrPageInfo = document.getElementById('hrPageInfo');
 
   const watchFolderPath = document.getElementById('watchFolderPath');
   const copyPathBtn = document.getElementById('copyPathBtn');
   const scanFolderBtn = document.getElementById('scanFolderBtn');
   const refreshHistoryBtn = document.getElementById('refreshHistoryBtn');
   const clearHistoryBtn = document.getElementById('clearHistoryBtn');
-  const historyEmpty = document.getElementById('historyEmpty');
   const historyTable = document.getElementById('historyTable');
   const historyTableBody = document.getElementById('historyTableBody');
+  const historyPaginationBar = document.getElementById('historyPaginationBar');
+  const historyPageInfo = document.getElementById('historyPageInfo');
+  const historyPrevBtn = document.getElementById('historyPrevBtn');
+  const historyNextBtn = document.getElementById('historyNextBtn');
+  const historyPageNumbers = document.getElementById('historyPageNumbers');
+
+  let historyCurrentPage = 1;
+  const historyPageSize = 10;
 
   // Daily Quota Elements
   const quotaCount = document.getElementById('quotaCount');
@@ -110,6 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const whatsAppEmpty = document.getElementById('whatsAppEmpty');
   const whatsAppLeadsGrid = document.getElementById('whatsAppLeadsGrid');
   const refreshWhatsAppBtn = document.getElementById('refreshWhatsAppBtn');
+  const importWhatsAppCsvBtn = document.getElementById('importWhatsAppCsvBtn');
   const manualWhatsAppCard = document.getElementById('manualWhatsAppCard');
   const manualWhatsAppPhone = document.getElementById('manualWhatsAppPhone');
   const manualWhatsAppMessage = document.getElementById('manualWhatsAppMessage');
@@ -189,6 +266,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let historyData = [];
   let followUpsData = [];
   let whatsAppLeadsData = [];
+  let currentWhatsAppFilter = 'ALL';
+  let currentWhatsAppSearch = '';
   let leadsData = [];
   let currentLeadFilter = 'ALL';
   let selectedLeadIds = new Set();
@@ -196,13 +275,14 @@ document.addEventListener('DOMContentLoaded', () => {
   let rolePresets = {};
   let currentPresetId = 'devops';
 
-  // ── Mode Switcher (6 Tabs) ──
+  // ── Mode Switcher (8 Tabs) ──
   tabAutoPilot.addEventListener('click', () => switchMode('autopilot'));
   tabManual.addEventListener('click', () => switchMode('manual'));
   if (tabLeads) tabLeads.addEventListener('click', () => switchMode('leads'));
   if (tabFollowUps) tabFollowUps.addEventListener('click', () => switchMode('followups'));
   if (tabWhatsApp) tabWhatsApp.addEventListener('click', () => switchMode('whatsapp'));
-  if (tabProfile) tabProfile.addEventListener('click', () => switchMode('profile'));
+  if (tabBounces) tabBounces.addEventListener('click', () => switchMode('bounces'));
+  if (tabLiveJobs) tabLiveJobs.addEventListener('click', () => switchMode('livejobs'));
 
   function switchMode(mode) {
     tabAutoPilot.classList.toggle('active', mode === 'autopilot');
@@ -210,14 +290,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tabLeads) tabLeads.classList.toggle('active', mode === 'leads');
     if (tabFollowUps) tabFollowUps.classList.toggle('active', mode === 'followups');
     if (tabWhatsApp) tabWhatsApp.classList.toggle('active', mode === 'whatsapp');
-    if (tabProfile) tabProfile.classList.toggle('active', mode === 'profile');
+    if (tabBounces) tabBounces.classList.toggle('active', mode === 'bounces');
+    if (tabLiveJobs) tabLiveJobs.classList.toggle('active', mode === 'livejobs');
 
     autopilotSection.style.display = mode === 'autopilot' ? 'flex' : 'none';
     manualSectionContainer.style.display = mode === 'manual' ? 'block' : 'none';
     if (leadsSection) leadsSection.style.display = mode === 'leads' ? 'flex' : 'none';
     if (followupsSection) followupsSection.style.display = mode === 'followups' ? 'flex' : 'none';
     if (whatsappSection) whatsappSection.style.display = mode === 'whatsapp' ? 'flex' : 'none';
-    if (profileSection) profileSection.style.display = mode === 'profile' ? 'flex' : 'none';
+    if (bouncesSection) bouncesSection.style.display = mode === 'bounces' ? 'flex' : 'none';
+    if (livejobsSection) livejobsSection.style.display = mode === 'livejobs' ? 'flex' : 'none';
 
     loadingSection.style.display = 'none';
     reviewSection.style.display = 'none';
@@ -226,14 +308,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (mode === 'autopilot') {
       loadHistory();
       loadDailyStats();
+      loadExtractedHRContacts(1);
     } else if (mode === 'leads') {
+      loadCampaignStatus();
+      loadHRContacts(1);
       loadLeads();
     } else if (mode === 'followups') {
       loadFollowUps();
     } else if (mode === 'whatsapp') {
       loadWhatsAppLeads();
-    } else if (mode === 'profile') {
-      loadProfile();
+    } else if (mode === 'bounces') {
+      loadBounceStats();
+    } else if (mode === 'livejobs') {
+      loadLiveJobStats();
+      loadLiveJobs(1);
     }
   }
 
@@ -287,12 +375,33 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!confirm('Are you sure you want to clear the Auto-Pilot activity log?')) return;
     try {
       await fetch('/api/autopilot/clear-history', { method: 'POST' });
+      historyCurrentPage = 1;
       loadHistory();
       showToast('Activity log cleared', 'success');
     } catch (e) {
       showToast('Failed to clear log', 'error');
     }
   });
+
+  // History Pagination Event Handlers
+  if (historyPrevBtn) {
+    historyPrevBtn.addEventListener('click', () => {
+      if (historyCurrentPage > 1) {
+        historyCurrentPage--;
+        renderHistoryTable(historyData);
+      }
+    });
+  }
+
+  if (historyNextBtn) {
+    historyNextBtn.addEventListener('click', () => {
+      const totalPages = Math.max(1, Math.ceil((historyData || []).length / historyPageSize));
+      if (historyCurrentPage < totalPages) {
+        historyCurrentPage++;
+        renderHistoryTable(historyData);
+      }
+    });
+  }
 
   // ── Load Auto-Pilot History ──
   async function loadHistory() {
@@ -306,18 +415,81 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function renderHistoryPageNumbers(currentPage, totalPages) {
+    if (!historyPageNumbers) return;
+    historyPageNumbers.innerHTML = '';
+    if (totalPages <= 1) return;
+
+    let startP = Math.max(1, currentPage - 2);
+    let endP = Math.min(totalPages, startP + 4);
+    if (endP - startP < 4) {
+      startP = Math.max(1, endP - 4);
+    }
+
+    const createPageBtn = (pageNum, isActive) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = isActive ? 'btn btn-primary btn-xs' : 'btn btn-ghost btn-xs';
+      btn.style.cssText = `min-width: 28px; height: 28px; padding: 0 6px; font-size: 12px; font-weight: ${isActive ? '700' : '500'}; ${isActive ? 'background: linear-gradient(135deg, #7c5cfc 0%, #00d4aa 100%); color: #0a0a0f;' : 'color: #94a3b8; border: 1px solid rgba(255,255,255,0.08);'}`;
+      btn.textContent = pageNum;
+      if (!isActive) {
+        btn.addEventListener('click', () => {
+          historyCurrentPage = pageNum;
+          renderHistoryTable(historyData);
+        });
+      }
+      return btn;
+    };
+
+    if (startP > 1) {
+      historyPageNumbers.appendChild(createPageBtn(1, currentPage === 1));
+      if (startP > 2) {
+        const dots = document.createElement('span');
+        dots.style.cssText = 'padding: 0 4px; color: var(--text-muted); font-size: 12px;';
+        dots.textContent = '...';
+        historyPageNumbers.appendChild(dots);
+      }
+    }
+
+    for (let p = startP; p <= endP; p++) {
+      historyPageNumbers.appendChild(createPageBtn(p, p === currentPage));
+    }
+
+    if (endP < totalPages) {
+      if (endP < totalPages - 1) {
+        const dots = document.createElement('span');
+        dots.style.cssText = 'padding: 0 4px; color: var(--text-muted); font-size: 12px;';
+        dots.textContent = '...';
+        historyPageNumbers.appendChild(dots);
+      }
+      historyPageNumbers.appendChild(createPageBtn(totalPages, currentPage === totalPages));
+    }
+  }
+
   function renderHistoryTable(items) {
     if (!items || items.length === 0) {
       historyEmpty.style.display = 'block';
       historyTable.style.display = 'none';
+      if (historyPaginationBar) historyPaginationBar.style.display = 'none';
       return;
     }
 
     historyEmpty.style.display = 'none';
     historyTable.style.display = 'table';
+
+    const totalItems = items.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / historyPageSize));
+    if (historyCurrentPage > totalPages) historyCurrentPage = totalPages;
+    if (historyCurrentPage < 1) historyCurrentPage = 1;
+
+    const startIndex = (historyCurrentPage - 1) * historyPageSize;
+    const endIndex = Math.min(startIndex + historyPageSize, totalItems);
+    const pageItems = items.slice(startIndex, endIndex);
+
     historyTableBody.innerHTML = '';
 
-    items.forEach((item, index) => {
+    pageItems.forEach((item, index) => {
+      const globalIndex = startIndex + index;
       const tr = document.createElement('tr');
 
       let statusBadge = '';
@@ -346,7 +518,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </td>
         <td style="color: var(--text-muted); font-size: 12px;">${formattedTime}</td>
         <td>
-          <button class="btn btn-ghost btn-sm view-details-btn" data-index="${index}" style="padding: 4px 10px; font-size: 12px;">
+          <button class="btn btn-ghost btn-sm view-details-btn" data-index="${globalIndex}" style="padding: 4px 10px; font-size: 12px;">
             👁️ View
           </button>
         </td>
@@ -362,6 +534,21 @@ document.addEventListener('DOMContentLoaded', () => {
         showEmailDetailsModal(historyData[idx]);
       });
     });
+
+    // Update Pagination Controls
+    if (historyPaginationBar) {
+      historyPaginationBar.style.display = 'flex';
+      if (historyPageInfo) {
+        historyPageInfo.textContent = `Showing ${totalItems > 0 ? startIndex + 1 : 0}–${endIndex} of ${totalItems} emails (Page ${historyCurrentPage} of ${totalPages})`;
+      }
+      if (historyPrevBtn) {
+        historyPrevBtn.disabled = (historyCurrentPage <= 1);
+      }
+      if (historyNextBtn) {
+        historyNextBtn.disabled = (historyCurrentPage >= totalPages);
+      }
+      renderHistoryPageNumbers(historyCurrentPage, totalPages);
+    }
   }
 
   function showEmailDetailsModal(item) {
@@ -503,6 +690,134 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.key === 'Enter') {
         updateDailyLimit(customLimitInput.value.trim());
       }
+    });
+  }
+
+  // ──────────────────────────────────────────────
+  // 📋 EXTRACTED HR CONTACTS (FROM SCREENSHOTS)
+  // ──────────────────────────────────────────────
+  let extractedHrCurrentPage = 1;
+  let extractedHrSearchQuery = '';
+  let extractedHrSearchTimer = null;
+
+  async function loadExtractedHRContacts(page = 1) {
+    extractedHrCurrentPage = page;
+    try {
+      const url = `/api/extracted-hr?page=${extractedHrCurrentPage}&limit=20&search=${encodeURIComponent(extractedHrSearchQuery)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (!data.success) return;
+
+      // Update counters
+      const totalNum = data.total || 0;
+      if (extractedHrTotalBadge) extractedHrTotalBadge.textContent = `${totalNum.toLocaleString()} Extracted`;
+      if (statExtractedTotal) statExtractedTotal.textContent = totalNum.toLocaleString();
+      if (statExtractedEmail) statExtractedEmail.textContent = (data.withEmailCount || 0).toLocaleString();
+      if (statExtractedName) statExtractedName.textContent = (data.withNameCount || 0).toLocaleString();
+      if (statExtractedCompany) statExtractedCompany.textContent = (data.withCompanyCount || 0).toLocaleString();
+
+      // Update Pagination
+      const totalPages = data.total_pages || 1;
+      if (extractedHrPageInfo) {
+        extractedHrPageInfo.textContent = `Page ${data.page} of ${totalPages} (${totalNum.toLocaleString()} contacts)`;
+      }
+      if (extractedHrPrevBtn) extractedHrPrevBtn.disabled = data.page <= 1;
+      if (extractedHrNextBtn) extractedHrNextBtn.disabled = data.page >= totalPages;
+
+      // Render Table Rows
+      renderExtractedHrTable(data.contacts || []);
+    } catch (err) {
+      console.warn('[ExtractedHR] Failed to load contacts:', err.message);
+    }
+  }
+
+  function renderExtractedHrTable(contacts) {
+    if (!extractedHrTable || !extractedHrTableBody) return;
+
+    if (!contacts || contacts.length === 0) {
+      if (extractedHrEmpty) extractedHrEmpty.style.display = 'block';
+      extractedHrTable.style.display = 'none';
+      return;
+    }
+
+    if (extractedHrEmpty) extractedHrEmpty.style.display = 'none';
+    extractedHrTable.style.display = 'table';
+    extractedHrTableBody.innerHTML = '';
+
+    contacts.forEach((c, idx) => {
+      const tr = document.createElement('tr');
+      const rowNum = (extractedHrCurrentPage - 1) * 20 + (idx + 1);
+
+      const nameHtml = c.name 
+        ? `<div style="font-weight: 600; color: #fff;">${escapeHtml(c.name)}</div>`
+        : `<span style="color: var(--text-muted); font-size: 12px; font-style: italic;">(blank)</span>`;
+
+      const compHtml = c.company_name
+        ? `<div style="font-weight: 500; color: #e2e8f0;">🏢 ${escapeHtml(c.company_name)}</div>`
+        : `<span style="color: var(--text-muted); font-size: 12px; font-style: italic;">(blank)</span>`;
+
+      const emailHtml = c.email
+        ? `<a href="mailto:${escapeHtml(c.email)}" style="color: #38bdf8; text-decoration: none; font-family: monospace; font-size: 12.5px;" title="Click to email">${escapeHtml(c.email)}</a>`
+        : `<span style="color: var(--text-muted); font-size: 12px; font-style: italic;">(blank)</span>`;
+
+      const titleHtml = c.job_title
+        ? `<span style="font-size: 12.5px; color: var(--text-secondary);">${escapeHtml(c.job_title)}</span>`
+        : `<span style="color: var(--text-muted); font-size: 12px; font-style: italic;">(blank)</span>`;
+
+      const dateStr = c.extracted_at ? new Date(c.extracted_at).toLocaleDateString('en-IN') : '-';
+      const sourceStr = c.source ? escapeHtml(c.source) : 'Screenshot';
+
+      tr.innerHTML = `
+        <td style="color: var(--text-muted); font-size: 12px; font-family: monospace;">#${rowNum}</td>
+        <td>${nameHtml}</td>
+        <td>${compHtml}</td>
+        <td>${emailHtml}</td>
+        <td>${titleHtml}</td>
+        <td style="font-size: 12px; color: var(--text-muted); white-space: nowrap;">${dateStr}</td>
+        <td style="font-size: 11.5px; color: var(--text-muted); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${sourceStr}">
+          📸 ${sourceStr}
+        </td>
+      `;
+      extractedHrTableBody.appendChild(tr);
+    });
+  }
+
+  if (refreshExtractedHrBtn) {
+    refreshExtractedHrBtn.addEventListener('click', () => {
+      loadExtractedHRContacts(1);
+      showToast('Extracted HR directory refreshed', 'info');
+    });
+  }
+
+  if (extractedHrSearchInput) {
+    extractedHrSearchInput.addEventListener('input', (e) => {
+      clearTimeout(extractedHrSearchTimer);
+      extractedHrSearchQuery = e.target.value;
+      extractedHrSearchTimer = setTimeout(() => {
+        loadExtractedHRContacts(1);
+      }, 300);
+    });
+  }
+
+  if (extractedHrClearSearchBtn) {
+    extractedHrClearSearchBtn.addEventListener('click', () => {
+      if (extractedHrSearchInput) extractedHrSearchInput.value = '';
+      extractedHrSearchQuery = '';
+      loadExtractedHRContacts(1);
+    });
+  }
+
+  if (extractedHrPrevBtn) {
+    extractedHrPrevBtn.addEventListener('click', () => {
+      if (extractedHrCurrentPage > 1) {
+        loadExtractedHRContacts(extractedHrCurrentPage - 1);
+      }
+    });
+  }
+
+  if (extractedHrNextBtn) {
+    extractedHrNextBtn.addEventListener('click', () => {
+      loadExtractedHRContacts(extractedHrCurrentPage + 1);
     });
   }
 
@@ -736,22 +1051,62 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       whatsAppLeadsData = data.leads || [];
 
-      // Update badge count for pending approval
+      const pendingCount = whatsAppLeadsData.filter(l => l.status === 'PENDING_APPROVAL').length;
+      const sentCount = whatsAppLeadsData.filter(l => l.status === 'SENT').length;
+      const totalCount = whatsAppLeadsData.length;
+
+      // Update badge count
       if (whatsAppTabBadge) {
-        const pendingCount = whatsAppLeadsData.filter(l => l.status === 'PENDING_APPROVAL').length;
         if (pendingCount > 0) {
           whatsAppTabBadge.style.display = 'inline-block';
           whatsAppTabBadge.textContent = `${pendingCount} pending`;
         } else {
           whatsAppTabBadge.style.display = 'inline-block';
-          whatsAppTabBadge.textContent = `${whatsAppLeadsData.length} leads`;
+          whatsAppTabBadge.textContent = `${totalCount} leads`;
         }
       }
 
-      renderWhatsAppLeads(whatsAppLeadsData);
+      // Update WhatsApp filter counter pills
+      if (waAllCount) waAllCount.textContent = totalCount;
+      if (waPendingCount) waPendingCount.textContent = pendingCount;
+      if (waSentCount) waSentCount.textContent = sentCount;
+
+      applyWhatsAppFilterAndRender();
     } catch (e) {
       console.error('Failed to load WhatsApp leads:', e);
     }
+  }
+
+  function applyWhatsAppFilterAndRender() {
+    let filtered = whatsAppLeadsData || [];
+
+    // Filter by status tab
+    if (currentWhatsAppFilter === 'PENDING') {
+      filtered = filtered.filter(l => l.status === 'PENDING_APPROVAL');
+    } else if (currentWhatsAppFilter === 'SENT') {
+      filtered = filtered.filter(l => l.status === 'SENT');
+    }
+
+    // Filter by search query
+    const query = (currentWhatsAppSearch || '').trim().toLowerCase();
+    if (query) {
+      filtered = filtered.filter(l => {
+        const title = (l.job_title || '').toLowerCase();
+        const comp = (l.company_name || '').toLowerCase();
+        const contact = (l.contact_person || '').toLowerCase();
+        const phone = (l.phone_number || '').toLowerCase();
+        const dPhone = (l.display_phone || '').toLowerCase();
+        const msg = (l.message_draft || '').toLowerCase();
+        return title.includes(query) ||
+               comp.includes(query) ||
+               contact.includes(query) ||
+               phone.includes(query) ||
+               dPhone.includes(query) ||
+               msg.includes(query);
+      });
+    }
+
+    renderWhatsAppLeads(filtered);
   }
 
   function renderWhatsAppLeads(leads) {
@@ -760,6 +1115,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!leads || leads.length === 0) {
       whatsAppEmpty.style.display = 'block';
       whatsAppLeadsGrid.style.display = 'none';
+
+      const emptyTitle = whatsAppEmpty.querySelector('.history-empty-title');
+      const emptyDesc = whatsAppEmpty.querySelector('.history-empty-desc');
+      if (currentWhatsAppSearch || currentWhatsAppFilter !== 'ALL') {
+        if (emptyTitle) emptyTitle.textContent = 'No Matching WhatsApp Leads Found';
+        if (emptyDesc) emptyDesc.textContent = 'Try searching with a different keyword or switching to "All" status.';
+      } else {
+        if (emptyTitle) emptyTitle.textContent = 'No WhatsApp Leads Shortlisted Yet';
+        if (emptyDesc) emptyDesc.textContent = 'When you drop job screenshots containing recruiter mobile/phone numbers, they will be automatically extracted, drafted, and shortlisted here!';
+      }
       return;
     }
 
@@ -943,6 +1308,58 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshWhatsAppBtn.addEventListener('click', () => {
       loadWhatsAppLeads();
       showToast('WhatsApp leads refreshed', 'info');
+    });
+  }
+
+  if (importWhatsAppCsvBtn) {
+    importWhatsAppCsvBtn.addEventListener('click', async () => {
+      try {
+        importWhatsAppCsvBtn.disabled = true;
+        importWhatsAppCsvBtn.innerHTML = '<span>⏳ Importing...</span>';
+        const res = await fetch('/api/whatsapp/import-csv', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`Imported ${data.imported_count} recruiter WhatsApp leads with DevOps messages!`, 'success');
+          loadWhatsAppLeads();
+        } else {
+          showToast(data.error || 'Failed to import WhatsApp leads', 'error');
+        }
+      } catch (err) {
+        showToast('Error importing CSV: ' + err.message, 'error');
+      } finally {
+        importWhatsAppCsvBtn.disabled = false;
+        importWhatsAppCsvBtn.innerHTML = `
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Import Leads from CSV
+        `;
+      }
+    });
+  }
+
+  // ── WhatsApp Search & Filter Controls in Operations Hub ──
+  if (whatsAppSearchInput) {
+    whatsAppSearchInput.addEventListener('input', (e) => {
+      currentWhatsAppSearch = e.target.value;
+      applyWhatsAppFilterAndRender();
+    });
+  }
+
+  if (whatsAppStatusFilters) {
+    whatsAppStatusFilters.querySelectorAll('.wa-filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        whatsAppStatusFilters.querySelectorAll('.wa-filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentWhatsAppFilter = btn.getAttribute('data-filter') || 'ALL';
+        applyWhatsAppFilterAndRender();
+      });
     });
   }
 
@@ -1342,7 +1759,157 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ── 🚀 Autonomous Daily 100 DevOps Campaign ──
+  // ──────────────────────────────────────────────
+  // 📋 HR Contacts Directory & Pagination State
+  // ──────────────────────────────────────────────
+  let hrCurrentPage = 1;
+  let hrTotalPages = 1;
+  let hrSearchQuery = '';
+  let hrStatusFilter = 'ALL';
+  let hrSearchTimer = null;
+
+  async function loadHRContacts(page = 1) {
+    hrCurrentPage = page;
+    try {
+      const url = `/api/campaign/hr-contacts?page=${hrCurrentPage}&limit=20&search=${encodeURIComponent(hrSearchQuery)}&status=${hrStatusFilter}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (!data.success) return;
+
+      hrTotalPages = data.total_pages || 1;
+      if (hrPageInfo) hrPageInfo.textContent = `Page ${data.page} of ${hrTotalPages} (${data.total.toLocaleString()} contacts)`;
+      const hrDirTitle = document.getElementById('hrDirectoryTitle');
+      if (hrDirTitle && data.total) hrDirTitle.textContent = `📋 HR & Recruiter Contact Directory (${data.total.toLocaleString()} Contacts)`;
+      if (hrPrevPageBtn) hrPrevPageBtn.disabled = data.page <= 1;
+      if (hrNextPageBtn) hrNextPageBtn.disabled = data.page >= hrTotalPages;
+
+      if (hrContactsTableBody) {
+        if (!data.contacts || data.contacts.length === 0) {
+          hrContactsTableBody.innerHTML = `
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 28px; color: var(--text-muted);">
+                🔍 No HR contacts found matching your search.
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        hrContactsTableBody.innerHTML = data.contacts.map((c, idx) => {
+          const serial = (data.page - 1) * data.limit + idx + 1;
+          const isSent = c.status === 'SENT';
+          const statusBadge = isSent
+            ? `<span class="badge badge-success" style="font-size: 0.75rem; padding: 3px 8px;">✅ SENT ${c.sent_at ? new Date(c.sent_at).toLocaleDateString() : ''}</span>`
+            : `<span class="badge badge-warning" style="font-size: 0.75rem; padding: 3px 8px;">⏳ READY FOR BATCH</span>`;
+          
+          const actionBtn = isSent
+            ? `<span style="font-size: 0.8rem; color: var(--text-muted);">Sent</span>`
+            : `<button type="button" class="btn btn-secondary btn-sm send-direct-hr-btn" data-email="${c.email}" data-name="${encodeURIComponent(c.name)}" data-title="${encodeURIComponent(c.title)}" data-company="${encodeURIComponent(c.company)}" style="padding: 4px 10px; font-size: 0.8rem;">
+                <span>⚡ Send Now</span>
+               </button>`;
+
+          return `
+            <tr>
+              <td style="color: var(--text-muted); font-weight: 600;">#${serial}</td>
+              <td>
+                <div style="font-weight: 600; color: #fff;">${c.name}</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">${c.title}</div>
+              </td>
+              <td><span style="font-weight: 500; color: #a5b4fc;">${c.company}</span></td>
+              <td><code style="font-size: 0.82rem; color: #34d399;">${c.email}</code></td>
+              <td>${statusBadge}</td>
+              <td>${actionBtn}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    } catch (e) {
+      console.error('Failed to load HR contacts:', e);
+    }
+  }
+
+  // HR Table Event Listeners
+  if (hrPrevPageBtn) {
+    hrPrevPageBtn.addEventListener('click', () => {
+      if (hrCurrentPage > 1) loadHRContacts(hrCurrentPage - 1);
+    });
+  }
+
+  if (hrNextPageBtn) {
+    hrNextPageBtn.addEventListener('click', () => {
+      if (hrCurrentPage < hrTotalPages) loadHRContacts(hrCurrentPage + 1);
+    });
+  }
+
+  if (hrSearchInput) {
+    hrSearchInput.addEventListener('input', (e) => {
+      clearTimeout(hrSearchTimer);
+      hrSearchTimer = setTimeout(() => {
+        hrSearchQuery = e.target.value.trim();
+        loadHRContacts(1);
+      }, 300);
+    });
+  }
+
+  if (hrFilterPills) {
+    hrFilterPills.addEventListener('click', (e) => {
+      const pill = e.target.closest('.filter-pill');
+      if (pill && pill.dataset.filter) {
+        hrFilterPills.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        hrStatusFilter = pill.dataset.filter;
+        loadHRContacts(1);
+      }
+    });
+  }
+
+  if (refreshHRListBtn) {
+    refreshHRListBtn.addEventListener('click', () => {
+      loadHRContacts(hrCurrentPage);
+      loadCampaignStatus();
+      showToast('HR Directory refreshed', 'info');
+    });
+  }
+
+  if (hrContactsTableBody) {
+    hrContactsTableBody.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.send-direct-hr-btn');
+      if (btn && !btn.disabled) {
+        const email = btn.dataset.email;
+        const name = decodeURIComponent(btn.dataset.name);
+        const title = decodeURIComponent(btn.dataset.title);
+        const company = decodeURIComponent(btn.dataset.company);
+
+        btn.disabled = true;
+        const origText = btn.innerHTML;
+        btn.innerHTML = 'Sending...';
+
+        try {
+          const res = await fetch('/api/campaign/send-hr', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contact: { email, name, title, company } })
+          });
+          const data = await res.json();
+          if (data.success) {
+            showToast(`✅ Cold email sent to ${name} at ${company}!`, 'success');
+            loadHRContacts(hrCurrentPage);
+            loadCampaignStatus();
+          } else {
+            showToast(`Failed: ${data.error || 'Could not send email'}`, 'error');
+            btn.disabled = false;
+            btn.innerHTML = origText;
+          }
+        } catch (err) {
+          showToast(`Send error: ${err.message}`, 'error');
+          btn.disabled = false;
+          btn.innerHTML = origText;
+        }
+      }
+    });
+  }
+
+  // ── 🚀 Autonomous Daily 100 HR Cold Mail Campaign ──
   async function loadCampaignStatus() {
     try {
       const res = await fetch('/api/campaign/status');
@@ -1350,9 +1917,24 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!data.success) return;
 
       const stats = data.stats || {};
-      if (campContactedNum) campContactedNum.textContent = stats.contacted_total || 0;
-      if (campRemainingNum) campRemainingNum.textContent = stats.remaining_uncontacted || 0;
-      if (campTodaySentNum) campTodaySentNum.textContent = `${stats.today_sent || 0}/100`;
+      if (campTotalHRNum) campTotalHRNum.textContent = stats.hr_csv_total || '1,842';
+      if (campContactedNum) campContactedNum.textContent = stats.hr_csv_sent || 0;
+      if (campRemainingNum) campRemainingNum.textContent = stats.hr_csv_remaining || 0;
+      if (campBatchNum && data.batch_info) {
+        campBatchNum.textContent = `Batch ${data.batch_info.current_batch} of ${data.batch_info.total_batches}`;
+      }
+      if (campTodaySentNum) campTodaySentNum.textContent = `${stats.today_sent || 0}/${stats.daily_limit || 150}`;
+
+      if (hrFilterAllCount) hrFilterAllCount.textContent = stats.hr_csv_total || 0;
+      if (hrFilterPendingCount) hrFilterPendingCount.textContent = stats.hr_csv_remaining || 0;
+      if (hrFilterSentCount) hrFilterSentCount.textContent = stats.hr_csv_sent || 0;
+
+      if (campSourceBadge) {
+        const totalFormatted = (stats.hr_csv_total || 3044).toLocaleString();
+        campSourceBadge.textContent = data.source === 'CSV_LIST'
+          ? `📦 Pre-Loaded ${totalFormatted} HR Contacts (CSV)`
+          : `🤖 AI Online Recruiter Discovery`;
+      }
 
       const prog = data.progress || {};
       if (data.is_running) {
@@ -1361,7 +1943,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (campaignProgressBox) campaignProgressBox.style.display = 'flex';
 
         const pct = prog.target > 0 ? Math.round((prog.current / prog.target) * 100) : 0;
-        if (campaignProgressStatus) campaignProgressStatus.textContent = `🚀 Processing: ${prog.current_company || 'Connecting...'} (${prog.current}/${prog.target})`;
+        if (campaignProgressStatus) campaignProgressStatus.textContent = `🚀 Processing: ${prog.current_contact || 'Connecting...'} (${prog.current}/${prog.target})`;
         if (campaignProgressPercentage) campaignProgressPercentage.textContent = `${pct}%`;
         if (campaignProgressBar) campaignProgressBar.style.width = `${pct}%`;
         if (campaignCurrentLog) campaignCurrentLog.textContent = prog.last_log || 'Dispatched cold email with resume...';
@@ -1370,10 +1952,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (stopDailyCampaignBtn) stopDailyCampaignBtn.style.display = 'none';
         if (prog.completed_at && campaignProgressBox) {
           campaignProgressBox.style.display = 'flex';
-          if (campaignProgressStatus) campaignProgressStatus.textContent = '✅ Daily Campaign Completed';
+          if (campaignProgressStatus) campaignProgressStatus.textContent = '✅ Today’s Batch Completed';
           if (campaignProgressPercentage) campaignProgressPercentage.textContent = '100%';
           if (campaignProgressBar) campaignProgressBar.style.width = '100%';
-          if (campaignCurrentLog) campaignCurrentLog.textContent = prog.last_log || 'Finished today’s cold outreach.';
+          if (campaignCurrentLog) campaignCurrentLog.textContent = prog.last_log || 'Finished today’s 100 cold outreach.';
         }
       }
     } catch (e) {
@@ -1385,7 +1967,7 @@ document.addEventListener('DOMContentLoaded', () => {
     startDailyCampaignBtn.addEventListener('click', async () => {
       const origText = startDailyCampaignBtn.innerHTML;
       startDailyCampaignBtn.disabled = true;
-      startDailyCampaignBtn.innerHTML = '<span class="spinner" style="width: 14px; height: 14px; margin-right: 6px;"></span> Starting 100 Campaign...';
+      startDailyCampaignBtn.innerHTML = '<span class="spinner" style="width: 14px; height: 14px; margin-right: 6px;"></span> Starting 100 Batch...';
 
       try {
         const res = await fetch('/api/campaign/start', {
@@ -1395,8 +1977,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         const data = await res.json();
         if (data.success) {
-          showToast(`🚀 Launched daily 100 DevOps campaign! Dispatched to ${data.target_count} curated companies.`, 'success');
+          showToast(`🚀 Launched daily 100 HR cold email batch! Target: ${data.target_count} leaders.`, 'success');
           loadCampaignStatus();
+          loadHRContacts(hrCurrentPage);
           loadLeads();
         } else {
           showToast(`Could not launch campaign: ${data.error || data.message}`, 'error');
@@ -1417,8 +2000,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
         showToast(data.message || 'Campaign paused', 'info');
         loadCampaignStatus();
+        loadHRContacts(hrCurrentPage);
       } catch (err) {
         showToast(`Error stopping campaign: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  if (resetCampaignBtn) {
+    resetCampaignBtn.addEventListener('click', async () => {
+      if (confirm('Are you sure you want to reset the HR contacts campaign progress? This will mark all 1,842 CSV contacts as uncontacted.')) {
+        try {
+          const res = await fetch('/api/campaign/reset', { method: 'POST' });
+          const data = await res.json();
+          if (data.success) {
+            showToast('HR contacts campaign history reset successfully!', 'success');
+            loadCampaignStatus();
+            loadHRContacts(1);
+          }
+        } catch (e) {
+          showToast('Failed to reset campaign history', 'error');
+        }
       }
     });
   }
@@ -1429,21 +2031,24 @@ document.addEventListener('DOMContentLoaded', () => {
   loadDailyStats();
   loadLeads();
   loadCampaignStatus();
+  loadHRContacts(1);
   loadFollowUps();
   loadWhatsAppLeads();
+  loadBounceStats();
 
-  // Auto-poll history, daily stats, leads, campaign, followups, and whatsapp leads periodically
+  // Auto-poll history, daily stats, leads, campaign, followups, whatsapp, bounces periodically
   setInterval(() => {
     if (autopilotSection && autopilotSection.style.display !== 'none') {
       loadHistory();
       loadDailyStats();
     } else if (leadsSection && leadsSection.style.display !== 'none') {
-      loadLeads();
       loadCampaignStatus();
     } else if (followupsSection && followupsSection.style.display !== 'none') {
       loadFollowUps();
     } else if (whatsappSection && whatsappSection.style.display !== 'none') {
       loadWhatsAppLeads();
+    } else if (bouncesSection && bouncesSection.style.display !== 'none') {
+      loadBounceStats();
     }
   }, 4000);
 
@@ -1480,23 +2085,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (data.profile) {
         userProfile = data.profile;
+        const profileRoleBadge = document.getElementById('profileRoleBadge');
         if (profileRoleBadge) {
           const pName = data.profile.preset_id ? (data.profile.preset_id.charAt(0).toUpperCase() + data.profile.preset_id.slice(1)) : 'Profile';
           profileRoleBadge.textContent = pName;
+        }
+        if (typeof window.syncBulkPitchFromProfile === 'function') {
+          window.syncBulkPitchFromProfile(data.profile);
         }
       }
 
       if (data.has_resume) {
         showResumeStatus(data.resume_name);
+        const profileResumeTitle = document.getElementById('profileResumeTitle');
         if (profileResumeTitle) profileResumeTitle.textContent = `📄 Attached: ${data.resume_name}`;
+        const bulkResumeLabel = document.getElementById('bulkAttachResumeLabel');
+        if (bulkResumeLabel) bulkResumeLabel.innerHTML = `📎 Attach Active Resume (<code>${data.resume_name}</code>)`;
       }
     } catch (err) {
       console.error('Failed to check settings:', err);
     }
   }
-
-  // Load profile settings & presets in background on start
-  loadProfile();
 
   // ── Resume Upload ──
   resumeUploadArea.addEventListener('click', () => resumeInput.click());
@@ -2121,258 +2730,6 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
   });
 
-  // ═══════════════════════════════════════════════
-  // AI PERSONA & CANDIDATE PROFILE LOGIC
-  // ═══════════════════════════════════════════════
-
-  async function loadProfile() {
-    try {
-      // 1. Fetch presets
-      const presetsRes = await fetch('/api/profile/presets');
-      if (presetsRes.ok) {
-        const pData = await presetsRes.json();
-        rolePresets = pData.presets || {};
-      }
-
-      // 2. Fetch profile
-      const res = await fetch('/api/profile');
-      if (res.ok) {
-        const data = await res.json();
-        userProfile = data.profile || {};
-        populateProfileForm(userProfile);
-      }
-    } catch (err) {
-      console.error('Failed to load profile:', err);
-      showToast('Could not load profile settings', 'error');
-    }
-  }
-
-  function populateProfileForm(profile) {
-    if (!profile) return;
-    currentPresetId = profile.preset_id || 'devops';
-
-    if (profileName) profileName.value = profile.name || '';
-    if (profileTitle) profileTitle.value = profile.title || '';
-    if (profileEmail) profileEmail.value = profile.email || '';
-    if (profilePhone) profilePhone.value = profile.phone || '';
-    if (profilePortfolio) profilePortfolio.value = profile.portfolio || '';
-    if (profileLinkedin) profileLinkedin.value = profile.linkedin || '';
-    if (profileGithub) profileGithub.value = profile.github || '';
-    if (profileTargetRoles) profileTargetRoles.value = profile.target_roles || '';
-    if (profileCoreSkills) profileCoreSkills.value = profile.core_skills || '';
-    if (profileCustomAiInstructions) profileCustomAiInstructions.value = profile.custom_ai_instructions || '';
-    if (profileSignature) profileSignature.value = profile.signature || '';
-
-    updatePresetPillSelection(currentPresetId);
-
-    if (profileRoleBadge) {
-      const presetObj = rolePresets[currentPresetId];
-      profileRoleBadge.textContent = presetObj ? presetObj.name.split(' ')[0] : 'Custom';
-    }
-
-    updateLivePreview();
-  }
-
-  function updatePresetPillSelection(presetId) {
-    if (presetPillsGrid) {
-      presetPillsGrid.querySelectorAll('.preset-pill').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.preset === presetId);
-      });
-    }
-    const p = rolePresets[presetId];
-    if (activePresetBadge) {
-      activePresetBadge.textContent = p ? p.name : 'Custom Role';
-    }
-  }
-
-  function selectPreset(presetId) {
-    currentPresetId = presetId;
-    updatePresetPillSelection(presetId);
-    const p = rolePresets[presetId];
-    if (!p) return;
-
-    if (presetId !== 'custom') {
-      if (profileTitle) profileTitle.value = p.title;
-      if (profileTargetRoles) profileTargetRoles.value = p.target_roles;
-      if (profileCoreSkills) profileCoreSkills.value = p.core_skills;
-      if (profileCustomAiInstructions) profileCustomAiInstructions.value = p.custom_ai_instructions;
-    }
-
-    generateSignatureFromFields();
-    updateLivePreview();
-    showToast(`Loaded ${p.name} preset! Review & save.`, 'info');
-  }
-
-  function generateSignatureFromFields() {
-    const name = profileName ? profileName.value.trim() : 'Candidate Name';
-    const title = profileTitle ? profileTitle.value.trim() : '';
-    const phone = profilePhone ? profilePhone.value.trim() : '';
-    const email = profileEmail ? profileEmail.value.trim() : '';
-    const portfolio = profilePortfolio ? profilePortfolio.value.trim() : '';
-    const linkedin = profileLinkedin ? profileLinkedin.value.trim() : '';
-
-    const lines = [];
-    if (name) lines.push(name);
-    if (title) lines.push(title);
-
-    const contactLine = [];
-    if (phone) contactLine.push(`P: ${phone}`);
-    if (email) contactLine.push(`E: ${email}`);
-    if (contactLine.length > 0) lines.push(contactLine.join(' | '));
-
-    const linkLine = [];
-    if (portfolio) linkLine.push(`W: ${portfolio.replace(/^https?:\/\//, '')}`);
-    if (linkedin) linkLine.push(`In: ${linkedin.replace(/^https?:\/\/(www\.)?/, '')}`);
-    if (linkLine.length > 0) lines.push(linkLine.join(' | '));
-
-    const sigText = lines.join('\n');
-    if (profileSignature) profileSignature.value = sigText;
-    return sigText;
-  }
-
-  function updateLivePreview() {
-    if (!personaLivePreview) return;
-    const name = profileName ? profileName.value.trim() || 'Candidate Name' : 'Candidate Name';
-    const title = profileTitle ? profileTitle.value.trim() || 'Professional' : 'Professional';
-    const skills = profileCoreSkills ? profileCoreSkills.value.trim() || 'modern software engineering' : 'modern software engineering';
-    const custom = profileCustomAiInstructions ? profileCustomAiInstructions.value.trim() : '';
-    const sig = profileSignature ? profileSignature.value.trim() : '';
-
-    const sampleEmail = `Hi Sarah,
-
-I saw your opening for the ${title} role at TechCorp and wanted to reach out directly.
-
-In my recent work, I have focused on ${skills.split(',').slice(0, 3).join(',')}, building scalable solutions and delivering high-impact results.${custom ? `\n\nKey highlights: ${custom}` : ''}
-
-I've attached my resume for more background on my projects and experience. I would love to connect for a brief chat to see if my background is a good fit.
-
-Best,
-
-${sig || name}`;
-
-    personaLivePreview.textContent = sampleEmail;
-  }
-
-  async function handleSaveProfile(e) {
-    if (e) e.preventDefault();
-    if (!profileForm) return;
-
-    if (saveProfileBtn) {
-      saveProfileBtn.disabled = true;
-      saveProfileBtn.innerHTML = `
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite">
-          <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-        </svg>
-        <span>Saving Persona...</span>
-      `;
-    }
-
-    const payload = {
-      preset_id: currentPresetId,
-      name: profileName ? profileName.value.trim() : '',
-      title: profileTitle ? profileTitle.value.trim() : '',
-      email: profileEmail ? profileEmail.value.trim() : '',
-      phone: profilePhone ? profilePhone.value.trim() : '',
-      portfolio: profilePortfolio ? profilePortfolio.value.trim() : '',
-      linkedin: profileLinkedin ? profileLinkedin.value.trim() : '',
-      github: profileGithub ? profileGithub.value.trim() : '',
-      target_roles: profileTargetRoles ? profileTargetRoles.value.trim() : '',
-      core_skills: profileCoreSkills ? profileCoreSkills.value.trim() : '',
-      custom_ai_instructions: profileCustomAiInstructions ? profileCustomAiInstructions.value.trim() : '',
-      signature: profileSignature ? profileSignature.value.trim() : ''
-    };
-
-    try {
-      const res = await fetch('/api/profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        userProfile = data.profile;
-        if (profileRoleBadge) {
-          const p = rolePresets[currentPresetId];
-          profileRoleBadge.textContent = p ? p.name.split(' ')[0] : 'Custom';
-        }
-        showToast('🎉 AI Persona & Profile updated successfully!', 'success');
-      } else {
-        showToast(data.error || 'Failed to save profile', 'error');
-      }
-    } catch (err) {
-      showToast('Network error while saving profile', 'error');
-    } finally {
-      if (saveProfileBtn) {
-        saveProfileBtn.disabled = false;
-        saveProfileBtn.innerHTML = `
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          <span>Save Profile & Apply Changes</span>
-        `;
-      }
-    }
-  }
-
-  // Preset pill click listeners
-  if (presetPillsGrid) {
-    presetPillsGrid.addEventListener('click', (e) => {
-      const pill = e.target.closest('.preset-pill');
-      if (pill && pill.dataset.preset) {
-        selectPreset(pill.dataset.preset);
-      }
-    });
-  }
-
-  if (resetPresetBtn) {
-    resetPresetBtn.addEventListener('click', () => {
-      if (currentPresetId) selectPreset(currentPresetId);
-    });
-  }
-
-  if (autoGenerateSigBtn) {
-    autoGenerateSigBtn.addEventListener('click', () => {
-      generateSignatureFromFields();
-      updateLivePreview();
-      showToast('Generated signature from your profile info!', 'success');
-    });
-  }
-
-  if (profileForm) {
-    profileForm.addEventListener('submit', handleSaveProfile);
-  }
-
-  // Live preview update listeners
-  [profileName, profileTitle, profileCoreSkills, profileCustomAiInstructions, profileSignature].forEach(el => {
-    if (el) el.addEventListener('input', updateLivePreview);
-  });
-
-  // Resume upload in profile
-  if (profileUploadResumeBtn && profileResumeInput) {
-    profileUploadResumeBtn.addEventListener('click', () => profileResumeInput.click());
-    profileResumeInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const formData = new FormData();
-      formData.append('resume', file);
-      try {
-        const res = await fetch('/api/upload-resume', {
-          method: 'POST',
-          body: formData
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          if (profileResumeTitle) profileResumeTitle.textContent = `📄 Attached: ${data.filename}`;
-          if (resumeFileName) resumeFileName.textContent = data.filename;
-          if (resumeStatus) resumeStatus.style.display = 'flex';
-          showToast(`Resume attached: ${data.filename}`, 'success');
-        } else {
-          showToast(data.error || 'Failed to upload resume', 'error');
-        }
-      } catch (err) {
-        showToast('Error uploading resume', 'error');
-      }
-    });
-  }
-
   // ── Steps ──
   function updateSteps(activeStep) {
     const steps = stepsBar.querySelectorAll('.step');
@@ -2424,10 +2781,1425 @@ ${sig || name}`;
     }, 4000);
   }
 
-  // ── Keyboard shortcut ──
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      settingsModal.style.display = 'none';
+  // ── Bounce Shield & Auto-Cleaner Logic ──
+  async function loadBounceStats() {
+    try {
+      const res = await fetch('/api/bounces/stats');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (statCleanedBounces) statCleanedBounces.textContent = data.totalCleanedFromInbox || 0;
+      if (statTotalBounced) statTotalBounced.textContent = data.totalBounced || 0;
+      if (bouncesTabBadge) bouncesTabBadge.textContent = `${data.totalCleanedFromInbox || 0} Trashed`;
+      if (statLastCleaned) {
+        statLastCleaned.textContent = data.lastCleanedAt ? new Date(data.lastCleanedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Pending';
+      }
+
+      if (bouncedListTbody) {
+        const emails = Object.entries(data.bouncedEmails || {});
+        if (emails.length === 0) {
+          bouncedListTbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 24px; color: var(--text-muted);">✨ No bounced addresses recorded yet. All recipients deliverable!</td></tr>`;
+        } else {
+          bouncedListTbody.innerHTML = emails.map(([email, info]) => {
+            const dateStr = info.bouncedAt ? new Date(info.bouncedAt).toLocaleDateString() : 'Recent';
+            return `
+              <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                <td style="padding: 10px; font-weight: 600; color: #fca5a5;">${escapeHtml(email)}</td>
+                <td style="padding: 10px; color: var(--text-muted); font-size: 12px;">${escapeHtml(info.reason || 'Address not found')}</td>
+                <td style="padding: 10px; color: var(--text-muted); font-size: 12px;">${dateStr}</td>
+                <td style="padding: 10px;"><span style="display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; background: rgba(239, 68, 68, 0.2); color: #f87171; font-weight: 600;">BLOCKED</span></td>
+              </tr>
+            `;
+          }).join('');
+        }
+      }
+    } catch (e) {
+      console.warn('Could not load bounce stats:', e.message);
     }
+  }
+
+  if (cleanBouncesNowBtn) {
+    cleanBouncesNowBtn.addEventListener('click', async () => {
+      cleanBouncesNowBtn.disabled = true;
+      const originalText = cleanBouncesNowBtn.innerHTML;
+      cleanBouncesNowBtn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        <span>Scanning & Cleaning Inbox...</span>
+      `;
+      try {
+        const res = await fetch('/api/bounces/clean', { method: 'POST' });
+        const result = await res.json();
+        if (result.success) {
+          if (result.cleanedCount > 0) {
+            showToast(`🧹 Cleaned & trashed ${result.cleanedCount} bounce error emails from Inbox!`, 'success');
+          } else {
+            showToast('✨ Inbox is completely clean! Zero bounce emails found.', 'success');
+          }
+          await loadBounceStats();
+        } else {
+          showToast(`Clean failed: ${result.message || result.error}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Failed to connect: ${err.message}`, 'error');
+      } finally {
+        cleanBouncesNowBtn.disabled = false;
+        cleanBouncesNowBtn.innerHTML = originalText;
+      }
+    });
+  }
+
+  if (refreshBouncesBtn) {
+    refreshBouncesBtn.addEventListener('click', () => loadBounceStats());
+  }
+
+  if (copyGmailFilterBtn) {
+    copyGmailFilterBtn.addEventListener('click', async () => {
+      const q = document.getElementById('gmailFilterQuery').textContent;
+      try {
+        await navigator.clipboard.writeText(q);
+        showToast('Gmail search query copied to clipboard!', 'success');
+      } catch (e) {}
+    });
+  }
+
+  // ═══════════════════════════════════════════════
+  // 🌐 LIVE JOB RADAR (ATS JOB SOURCING CLIENT)
+  // ═══════════════════════════════════════════════
+
+  async function loadLiveJobStats() {
+    try {
+      const res = await fetch('/api/jobs/stats');
+      const data = await res.json();
+      if (!data.success) return;
+      const s = data.stats || {};
+      if (statLiveTotal) statLiveTotal.textContent = (s.total_jobs || 0).toLocaleString();
+      if (statLiveHighMatch) statLiveHighMatch.textContent = (s.high_match || 0).toLocaleString();
+      if (statLiveCompanies) statLiveCompanies.textContent = `${s.monitored_companies || 25}+`;
+      if (statLiveApplied) statLiveApplied.textContent = (s.applied_jobs || 0).toLocaleString();
+      if (liveJobsTabBadge) {
+        liveJobsTabBadge.textContent = `${s.total_jobs || 0} jobs`;
+      }
+      const refreshTimeEl = document.getElementById('liveJobsRefreshTimeText');
+      if (refreshTimeEl && s.last_scanned_at) {
+        const lastDate = new Date(s.last_scanned_at);
+        const timeStr = lastDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const isToday = lastDate.toDateString() === new Date().toDateString();
+        const dateStr = isToday ? `Today, ${timeStr}` : `${lastDate.toLocaleDateString()}, ${timeStr}`;
+        refreshTimeEl.textContent = `• Last auto-scan: ${dateStr}`;
+      }
+    } catch (e) {
+      console.warn('[LiveJobs] Failed to load stats:', e.message);
+    }
+  }
+
+  async function loadLiveJobs(page = 1) {
+    currentLivePage = page;
+    if (!liveJobsGrid) return;
+
+    liveJobsGrid.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        <div style="margin-top: 10px; font-weight: 600;">Sourcing Live DevOps & Cloud Engineering Openings...</div>
+      </div>
+    `;
+
+    try {
+      const queryParams = new URLSearchParams({
+        page: currentLivePage,
+        limit: 18,
+        search: currentLiveSearch,
+        status: currentLiveStatus,
+        min_ats_score: currentLiveMinAts,
+        location_filter: currentLiveLocation
+      });
+
+      const res = await fetch(`/api/jobs/live?${queryParams.toString()}`);
+      const data = await res.json();
+      if (!data.success) return;
+
+      totalLivePages = data.total_pages || 1;
+      if (liveJobsPageInfo) {
+        liveJobsPageInfo.textContent = `Page ${data.page} of ${totalLivePages} (${data.total.toLocaleString()} jobs)`;
+      }
+      if (liveJobsPrevBtn) liveJobsPrevBtn.disabled = data.page <= 1;
+      if (liveJobsNextBtn) liveJobsNextBtn.disabled = data.page >= totalLivePages;
+
+      if (!data.jobs || data.jobs.length === 0) {
+        liveJobsGrid.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; padding: 48px; border-radius: 12px; background: rgba(255, 255, 255, 0.02); border: 1px dashed rgba(255, 255, 255, 0.1);">
+            <div style="font-size: 32px; margin-bottom: 10px;">🔍</div>
+            <h3 style="font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 6px;">No Matching Jobs Found</h3>
+            <p style="font-size: 13px; color: var(--text-muted); max-width: 460px; margin: 0 auto 16px;">
+              Try relaxing your search query or lowering the ATS Match filter. You can also trigger a live ATS scan now.
+            </p>
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('scanLiveJobsBtn').click()">
+              ⚡ Scan Live ATS Boards Now
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      liveJobsGrid.innerHTML = data.jobs.map(job => {
+        const score = job.ats_score || 70;
+        let scoreClass = 'ats-score-norm';
+        let scoreIcon = '🎯';
+        if (score >= 80) {
+          scoreClass = 'ats-score-high';
+          scoreIcon = '🔥';
+        } else if (score >= 74) {
+          scoreClass = 'ats-score-med';
+          scoreIcon = '⚡';
+        }
+
+        const isApplied = job.status === 'APPLIED';
+        const isSaved = job.status === 'SAVED';
+        const cardStatusClass = isApplied ? 'status-applied' : (isSaved ? 'status-saved' : '');
+
+        const skillsHtml = (job.matched_skills || ['AWS', 'Kubernetes', 'CI/CD']).slice(0, 5).map(skill => 
+          `<span class="livejob-skill-chip">${escapeHtml(skill)}</span>`
+        ).join('');
+
+        const targetEmail = job.careers_email || job.hr_email || `careers@${job.domain}`;
+
+        return `
+          <div class="livejob-card ${cardStatusClass}" data-job-id="${job.id}">
+            <div>
+              <div class="livejob-top">
+                <div>
+                  <div class="livejob-company-badge">
+                    <span>🏢 ${escapeHtml(job.company)}</span>
+                    <span style="font-size: 10.5px; padding: 2px 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.06); color: var(--text-muted); font-weight: 500;">
+                      ${escapeHtml(job.source || 'ATS')}
+                    </span>
+                  </div>
+                  <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">
+                    ${escapeHtml(job.category || 'Tech')}
+                  </div>
+                </div>
+                <div class="livejob-ats-pill ${scoreClass}" title="ATS Match Algorithm Score">
+                  <span>${scoreIcon}</span>
+                  <span>${score}% ATS MATCH</span>
+                </div>
+              </div>
+
+              <h4 class="livejob-title" title="${escapeHtml(job.title)}">
+                ${escapeHtml(job.title)}
+              </h4>
+
+              <div class="livejob-meta-row">
+                <span class="livejob-meta-tag">
+                  📍 ${escapeHtml(job.location)}
+                </span>
+                ${job.is_remote ? '<span class="livejob-meta-tag" style="color: #38bdf8;">🌍 Remote</span>' : ''}
+                ${job.is_india ? '<span class="livejob-meta-tag" style="color: #34d399;">🇮🇳 India</span>' : ''}
+                <span class="livejob-meta-tag" style="color: var(--text-muted);" title="Target recruiter inbox">
+                  ✉️ ${escapeHtml(targetEmail)}
+                </span>
+              </div>
+
+              <div class="livejob-skills-wrap">
+                ${skillsHtml}
+              </div>
+
+              <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5; margin: 0 0 14px; max-height: 52px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+                ${escapeHtml(job.description_snippet || '')}
+              </p>
+            </div>
+
+            <div class="livejob-actions">
+              ${isApplied ? `
+                <span class="badge badge-success" style="font-size: 11.5px; padding: 5px 10px;">
+                  ✅ Applied ${job.applied_at ? new Date(job.applied_at).toLocaleDateString() : ''}
+                </span>
+              ` : `
+                <button type="button" class="btn btn-primary btn-sm livejob-pitch-btn" data-id="${job.id}" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);">
+                  <span>✨ AI Pitch</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm livejob-quick-apply-btn" data-id="${job.id}" title="1-click apply with resume attached">
+                  <span>⚡ Quick Apply</span>
+                </button>
+              `}
+
+              ${job.apply_url ? `
+                <a href="${escapeHtml(job.apply_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm" title="Open official company job posting">
+                  <span>🔗 Portal</span>
+                </a>
+              ` : ''}
+
+              <button type="button" class="btn btn-ghost btn-sm livejob-save-btn" data-id="${job.id}" data-saved="${isSaved}" title="${isSaved ? 'Unsave' : 'Save'} job" style="padding: 6px 8px; margin-left: auto;">
+                <span>${isSaved ? '⭐' : '☆'}</span>
+              </button>
+              <button type="button" class="btn btn-ghost btn-sm livejob-dismiss-btn" data-id="${job.id}" title="Dismiss job" style="padding: 6px 8px; color: var(--text-muted);">
+                <span>✕</span>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Wire up card action buttons
+      attachLiveJobCardListeners();
+
+    } catch (e) {
+      liveJobsGrid.innerHTML = `
+        <div style="grid-column: 1 / -1; padding: 24px; color: #f87171; text-align: center;">
+          Failed to load live jobs: ${e.message}
+        </div>
+      `;
+    }
+  }
+
+  function attachLiveJobCardListeners() {
+    if (!liveJobsGrid) return;
+
+    // AI Pitch modal
+    liveJobsGrid.querySelectorAll('.livejob-pitch-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const jobId = e.currentTarget.getAttribute('data-id');
+        openJobPitchModal(jobId);
+      });
+    });
+
+    // Quick apply
+    liveJobsGrid.querySelectorAll('.livejob-quick-apply-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const jobId = e.currentTarget.getAttribute('data-id');
+        await quickApplyJob(jobId, e.currentTarget);
+      });
+    });
+
+    // Save toggle
+    liveJobsGrid.querySelectorAll('.livejob-save-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const jobId = e.currentTarget.getAttribute('data-id');
+        const isSaved = e.currentTarget.getAttribute('data-saved') === 'true';
+        await toggleSaveJob(jobId, !isSaved, e.currentTarget);
+      });
+    });
+
+    // Dismiss
+    liveJobsGrid.querySelectorAll('.livejob-dismiss-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const jobId = e.currentTarget.getAttribute('data-id');
+        await dismissJob(jobId, e.currentTarget);
+      });
+    });
+  }
+
+  // ── Live Job Radar Event Listeners ──
+  if (scanLiveJobsBtn) {
+    scanLiveJobsBtn.addEventListener('click', async () => {
+      scanLiveJobsBtn.disabled = true;
+      const originalText = scanLiveJobsBtnText.textContent;
+      scanLiveJobsBtnText.textContent = 'Scanning 25+ ATS Boards...';
+      try {
+        const res = await fetch('/api/jobs/scan', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`⚡ Scanned live ATS boards! Found ${data.total} total jobs (${data.new_jobs_found} newly added).`, 'success');
+          await loadLiveJobStats();
+          await loadLiveJobs(1);
+        } else {
+          showToast(`Scan warning: ${data.message}`, 'warning');
+        }
+      } catch (err) {
+        showToast(`Scan error: ${err.message}`, 'error');
+      } finally {
+        scanLiveJobsBtn.disabled = false;
+        scanLiveJobsBtnText.textContent = originalText;
+      }
+    });
+  }
+
+  if (liveJobsSearch) {
+    liveJobsSearch.addEventListener('input', (e) => {
+      clearTimeout(liveSearchTimer);
+      liveSearchTimer = setTimeout(() => {
+        currentLiveSearch = e.target.value.trim();
+        loadLiveJobs(1);
+      }, 350);
+    });
+  }
+
+  if (liveJobsLocationFilter) {
+    liveJobsLocationFilter.addEventListener('change', (e) => {
+      currentLiveLocation = e.target.value;
+      loadLiveJobs(1);
+    });
+  }
+
+  if (liveJobsAtsFilter) {
+    liveJobsAtsFilter.addEventListener('change', (e) => {
+      currentLiveMinAts = parseInt(e.target.value, 10) || 0;
+      loadLiveJobs(1);
+    });
+  }
+
+  document.querySelectorAll('.livejobs-tab-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('.livejobs-tab-btn').forEach(b => b.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      currentLiveStatus = e.currentTarget.getAttribute('data-status');
+      loadLiveJobs(1);
+    });
   });
+
+  if (liveJobsPrevBtn) {
+    liveJobsPrevBtn.addEventListener('click', () => {
+      if (currentLivePage > 1) loadLiveJobs(currentLivePage - 1);
+    });
+  }
+
+  if (liveJobsNextBtn) {
+    liveJobsNextBtn.addEventListener('click', () => {
+      if (currentLivePage < totalLivePages) loadLiveJobs(currentLivePage + 1);
+    });
+  }
+
+  // ── AI Pitch Modal Functions ──
+  async function openJobPitchModal(jobId) {
+    activePitchJobId = jobId;
+    if (!jobPitchModal) return;
+
+    jobPitchModal.style.display = 'flex';
+    pitchBodyInput.value = 'Generating tailored DevOps & Cloud pitch using Gemini AI...';
+    pitchBodyInput.disabled = true;
+    if (sendPitchApplicationBtn) sendPitchApplicationBtn.disabled = true;
+
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/generate-pitch`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success && data.pitch) {
+        pitchSubjectInput.value = data.pitch.subject || '';
+        pitchBodyInput.value = data.pitch.body || '';
+        pitchBodyInput.disabled = false;
+        if (sendPitchApplicationBtn) sendPitchApplicationBtn.disabled = false;
+
+        // Fetch job detail to populate email recipient
+        const card = document.querySelector(`.livejob-card[data-job-id="${jobId}"]`);
+        if (card) {
+          const compName = card.querySelector('.livejob-company-badge span').textContent.replace('🏢 ', '');
+          pitchModalTitle.textContent = `✨ AI Pitch for ${compName}`;
+          // Get recipient email from text or default
+          const emailMeta = card.querySelector('.livejob-meta-row').textContent;
+          const match = emailMeta.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+          pitchRecipientInput.value = match ? match[1] : `careers@company.com`;
+        }
+      } else {
+        pitchBodyInput.value = 'Failed to generate pitch. You can type your own application message above.';
+        pitchBodyInput.disabled = false;
+        if (sendPitchApplicationBtn) sendPitchApplicationBtn.disabled = false;
+      }
+    } catch (e) {
+      pitchBodyInput.value = `Error generating pitch: ${e.message}`;
+      pitchBodyInput.disabled = false;
+    }
+  }
+
+  if (regeneratePitchBtn) {
+    regeneratePitchBtn.addEventListener('click', () => {
+      if (activePitchJobId) openJobPitchModal(activePitchJobId);
+    });
+  }
+
+  if (sendPitchApplicationBtn) {
+    sendPitchApplicationBtn.addEventListener('click', async () => {
+      if (!activePitchJobId) return;
+
+      const recipient = pitchRecipientInput.value.trim();
+      const subject = pitchSubjectInput.value.trim();
+      const body = pitchBodyInput.value.trim();
+
+      if (!recipient || !recipient.includes('@')) {
+        showToast('Please enter a valid recipient email address', 'error');
+        return;
+      }
+
+      sendPitchApplicationBtn.disabled = true;
+      const originalText = sendPitchApplicationBtn.innerHTML;
+      sendPitchApplicationBtn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        <span>Sending Application...</span>
+      `;
+
+      try {
+        const res = await fetch(`/api/jobs/${activePitchJobId}/apply`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            custom_email: recipient,
+            custom_subject: subject,
+            custom_body: body
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`🚀 Application email sent to ${recipient} with resume attached!`, 'success');
+          jobPitchModal.style.display = 'none';
+
+          // Update card in-place without resetting scroll or reloading grid
+          const cardEl = document.querySelector(`.livejob-card[data-job-id="${activePitchJobId}"]`);
+          if (cardEl) {
+            cardEl.classList.add('status-applied');
+            const actionsEl = cardEl.querySelector('.livejob-actions');
+            if (actionsEl) {
+              const pitchBtn = actionsEl.querySelector('.livejob-pitch-btn');
+              const quickBtn = actionsEl.querySelector('.livejob-quick-apply-btn');
+              if (pitchBtn) pitchBtn.remove();
+              if (quickBtn) {
+                const appliedBadge = document.createElement('span');
+                appliedBadge.className = 'badge badge-success';
+                appliedBadge.style.cssText = 'font-size: 11.5px; padding: 5px 10px; display: inline-flex; align-items: center; gap: 4px;';
+                appliedBadge.innerHTML = `✅ Applied Today`;
+                quickBtn.replaceWith(appliedBadge);
+              }
+            }
+          }
+          await loadLiveJobStats();
+        } else if (data.error === 'portal_required' || data.apply_url) {
+          showToast(data.message || 'Direct email blocked. Opening official ATS portal application...', 'warning');
+          jobPitchModal.style.display = 'none';
+          if (data.apply_url) window.open(data.apply_url, '_blank');
+        } else {
+          showToast(`Send failed: ${data.details || data.error || 'Unknown error'}`, 'error');
+        }
+      } catch (e) {
+        showToast(`Failed to dispatch application: ${e.message}`, 'error');
+      } finally {
+        sendPitchApplicationBtn.disabled = false;
+        sendPitchApplicationBtn.innerHTML = originalText;
+      }
+    });
+  }
+
+  if (cancelPitchModalBtn) {
+    cancelPitchModalBtn.addEventListener('click', () => {
+      jobPitchModal.style.display = 'none';
+    });
+  }
+
+  if (closePitchModalBtn) {
+    closePitchModalBtn.addEventListener('click', () => {
+      jobPitchModal.style.display = 'none';
+    });
+  }
+
+  async function quickApplyJob(jobId, buttonEl) {
+    const cardEl = buttonEl ? buttonEl.closest('.livejob-card') : document.querySelector(`.livejob-card[data-job-id="${jobId}"]`);
+    const originalText = buttonEl ? buttonEl.innerHTML : '<span>⚡ Quick Apply</span>';
+    if (buttonEl) {
+      buttonEl.disabled = true;
+      buttonEl.innerHTML = `
+        <span style="display: inline-flex; align-items: center; gap: 4px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          Applying...
+        </span>
+      `;
+    }
+
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/apply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`⚡ Application sent to ${data.recipient} with resume attached! Follow-up scheduled.`, 'success');
+
+        // In-place DOM update: update this specific card without wiping or reloading grid
+        // This 100% guarantees the user's scroll position and active page/view are preserved
+        if (cardEl) {
+          cardEl.classList.add('status-applied');
+          const actionsEl = cardEl.querySelector('.livejob-actions');
+          if (actionsEl) {
+            const pitchBtn = actionsEl.querySelector('.livejob-pitch-btn');
+            const quickBtn = actionsEl.querySelector('.livejob-quick-apply-btn');
+            if (pitchBtn) pitchBtn.remove();
+            if (quickBtn) {
+              const appliedBadge = document.createElement('span');
+              appliedBadge.className = 'badge badge-success';
+              appliedBadge.style.cssText = 'font-size: 11.5px; padding: 5px 10px; display: inline-flex; align-items: center; gap: 4px;';
+              appliedBadge.innerHTML = `✅ Applied Today`;
+              quickBtn.replaceWith(appliedBadge);
+            }
+          }
+        }
+        await loadLiveJobStats();
+      } else if (data.error === 'portal_required' || data.apply_url) {
+        showToast(data.message || 'Recruiter inboxes closed to cold emails. Opening official ATS application...', 'warning');
+        if (data.apply_url) {
+          window.open(data.apply_url, '_blank');
+        }
+        if (buttonEl) {
+          buttonEl.disabled = false;
+          buttonEl.innerHTML = '<span>🔗 Open Portal</span>';
+          buttonEl.onclick = (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (data.apply_url) window.open(data.apply_url, '_blank');
+          };
+        }
+      } else {
+        showToast(`Apply failed: ${data.details || data.error || 'Recipient unreachable'}`, 'error');
+        if (buttonEl) {
+          buttonEl.disabled = false;
+          buttonEl.innerHTML = originalText;
+        }
+      }
+    } catch (e) {
+      showToast(`Network error: ${e.message}`, 'error');
+      if (buttonEl) {
+        buttonEl.disabled = false;
+        buttonEl.innerHTML = originalText;
+      }
+    }
+  }
+
+  async function toggleSaveJob(jobId, shouldSave, buttonEl) {
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: shouldSave ? 'SAVED' : 'NEW' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(shouldSave ? '⭐ Job saved to favorites!' : 'Job removed from saved list.', 'success');
+        
+        // Update in-place without re-rendering grid
+        if (buttonEl) {
+          buttonEl.setAttribute('data-saved', shouldSave ? 'true' : 'false');
+          buttonEl.title = shouldSave ? 'Unsave job' : 'Save job';
+          buttonEl.innerHTML = `<span>${shouldSave ? '⭐' : '☆'}</span>`;
+          const cardEl = buttonEl.closest('.livejob-card');
+          if (cardEl) {
+            if (shouldSave) cardEl.classList.add('status-saved');
+            else cardEl.classList.remove('status-saved');
+          }
+        }
+        await loadLiveJobStats();
+      }
+    } catch (e) {
+      showToast('Failed to update job status', 'error');
+    }
+  }
+
+  async function dismissJob(jobId, buttonEl) {
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'DISMISSED' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Job dismissed', 'info');
+        if (buttonEl) {
+          const cardEl = buttonEl.closest('.livejob-card');
+          if (cardEl) {
+            cardEl.style.transition = 'all 0.25s ease';
+            cardEl.style.opacity = '0';
+            cardEl.style.transform = 'scale(0.95)';
+            setTimeout(() => cardEl.remove(), 250);
+          }
+        }
+        await loadLiveJobStats();
+      }
+    } catch (e) {
+      showToast('Failed to dismiss job', 'error');
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ⚡ MULTI-EMAIL IMPORTER & IMAGE OCR SCANNER (BULK COLD OUTREACH)
+  // ═══════════════════════════════════════════════════════════════════════════
+  function initBulkOutreachModule() {
+    const bulkSection = document.getElementById('bulkOutreachSection');
+    if (!bulkSection) return;
+
+    const tabBtnText = document.getElementById('bulkTabBtnText');
+    const tabBtnImage = document.getElementById('bulkTabBtnImage');
+    const tabBtnCsv = document.getElementById('bulkTabBtnCsv');
+    const paneText = document.getElementById('bulkPaneText');
+    const paneImage = document.getElementById('bulkPaneImage');
+    const paneCsv = document.getElementById('bulkPaneCsv');
+
+    const rawTextInput = document.getElementById('bulkRawTextInput');
+    const parseTextBtn = document.getElementById('bulkParseTextBtn');
+    const clearTextBtn = document.getElementById('bulkClearTextBtn');
+    const exampleSampleBtn = document.getElementById('bulkExampleSampleBtn');
+
+    const dropzone = document.getElementById('bulkImageDropzone');
+    const fileInput = document.getElementById('bulkImageFileInput');
+    const browseFileBtn = document.getElementById('bulkBrowseFileBtn');
+    const previewCard = document.getElementById('bulkImagePreviewCard');
+    const previewImg = document.getElementById('bulkPreviewImg');
+    const previewName = document.getElementById('bulkPreviewName');
+    const previewSize = document.getElementById('bulkPreviewSize');
+    const removeImageBtn = document.getElementById('bulkRemoveImageBtn');
+    const extractImageBtn = document.getElementById('bulkExtractImageBtn');
+    const ocrLoadingState = document.getElementById('bulkOcrLoadingState');
+
+    // CSV Mode Elements
+    const csvDropzone = document.getElementById('bulkCsvDropzone');
+    const csvFileInput = document.getElementById('bulkCsvFileInput');
+    const browseCsvBtn = document.getElementById('bulkBrowseCsvBtn');
+    const csvPreviewCard = document.getElementById('bulkCsvPreviewCard');
+    const csvPreviewName = document.getElementById('bulkCsvPreviewName');
+    const csvPreviewSize = document.getElementById('bulkCsvPreviewSize');
+    const removeCsvBtn = document.getElementById('bulkRemoveCsvBtn');
+    const parseCsvBtn = document.getElementById('bulkParseCsvBtn');
+    const csvLoadingState = document.getElementById('bulkCsvLoadingState');
+    const csvSaveToMasterCheckbox = document.getElementById('bulkCsvSaveToMasterCheckbox');
+
+    const stagingSection = document.getElementById('bulkStagingSection');
+    const stagedSelectedCount = document.getElementById('bulkStagedSelectedCount');
+    const stagedTotalCount = document.getElementById('bulkStagedTotalCount');
+    const masterCheckbox = document.getElementById('bulkMasterCheckbox');
+    const tableBody = document.getElementById('bulkStagedTableBody');
+    const selectAllBtn = document.getElementById('bulkSelectAllBtn');
+    const selectValidOnlyBtn = document.getElementById('bulkSelectValidOnlyBtn');
+    const deselectAllBtn = document.getElementById('bulkDeselectAllBtn');
+    const clearStagedBtn = document.getElementById('bulkClearStagedBtn');
+
+    const statBadgeAll = document.getElementById('statBadgeAll');
+    const statBadgeReady = document.getElementById('statBadgeReady');
+    const statBadgeContacted = document.getElementById('statBadgeContacted');
+    const statBadgeBounced = document.getElementById('statBadgeBounced');
+
+    const subjectInput = document.getElementById('bulkOutreachSubject');
+    const bodyInput = document.getElementById('bulkOutreachBody');
+    const resetPitchBtn = document.getElementById('bulkResetPitchBtn');
+    const aiPersonalizeToggle = document.getElementById('bulkAiPersonalizeToggle');
+    const attachResumeCheckbox = document.getElementById('bulkAttachResumeCheckbox');
+    const dispatchPace = document.getElementById('bulkDispatchPace');
+    const startDispatchBtn = document.getElementById('bulkStartDispatchBtn');
+    const stopDispatchBtn = document.getElementById('bulkStopDispatchBtn');
+    const dispatchCountLabel = document.getElementById('bulkDispatchCountLabel');
+
+    const monitorCard = document.getElementById('bulkMonitorCard');
+    const monitorStatusText = document.getElementById('bulkMonitorStatusText');
+    const monitorPercentage = document.getElementById('bulkMonitorPercentage');
+    const monitorProgressBar = document.getElementById('bulkMonitorProgressBar');
+    const statSent = document.getElementById('bulkStatSent');
+    const statFailed = document.getElementById('bulkStatFailed');
+    const statRemaining = document.getElementById('bulkStatRemaining');
+    const statTotal = document.getElementById('bulkStatTotal');
+    const terminalLog = document.getElementById('bulkTerminalLog');
+
+    // Dynamic pitch builder based on user's active profile
+    function getUniversalDefaultPitch(prof) {
+      const p = prof || userProfile || {};
+      const candidateName = p.name || 'Candidate';
+      const candidateTitle = p.title || 'Software Professional';
+      const candidateRole = (p.target_roles ? p.target_roles.split(',')[0].trim() : '') || candidateTitle;
+      const candidateSkills = p.core_skills || 'Cloud infrastructure, automation, CI/CD, and full-stack software development';
+      const candidatePortfolio = p.portfolio || '';
+      const candidatePhone = p.phone || '';
+      const candidateLinkedin = p.linkedin || '';
+
+      const sigParts = [
+        candidateName,
+        candidateTitle,
+        candidatePhone ? `Phone: ${candidatePhone}` : '',
+        candidatePortfolio ? `Portfolio: ${candidatePortfolio}` : '',
+        candidateLinkedin ? `LinkedIn: ${candidateLinkedin}` : ''
+      ].filter(Boolean);
+
+      const signature = p.signature || sigParts.join('\n');
+
+      return `Hi {name},
+
+I noticed {company} is actively scaling its engineering initiatives and wanted to reach out directly regarding ${candidateRole} opportunities on your team.
+
+My background centers on ${candidateSkills}. In my recent work, I built and automated scalable solutions that reduced release cycles, improved system stability, and streamlined engineering processes.
+
+I have attached my resume for your review.${candidatePortfolio ? ` You can also explore my live interactive architecture diagrams and deployed projects: ${candidatePortfolio}` : ''}
+
+Would you or the hiring team have 10 minutes this week for a brief introductory conversation?
+
+Best regards,
+
+${signature}`;
+    }
+
+    function syncPitchFromProfile(prof) {
+      const p = prof || userProfile || {};
+      const candidateName = p.name || 'Candidate';
+      const candidateTitle = p.title || 'Software Professional';
+      const candidateRole = (p.target_roles ? p.target_roles.split(',')[0].trim() : '') || candidateTitle;
+
+      if (subjectInput && (!subjectInput.value || subjectInput.value.includes('DevOps / SRE Engineer Application - Ajay Autade') || subjectInput.value === 'Software Professional Application - Inquiry')) {
+        subjectInput.value = `${candidateRole} Application - ${candidateName}`;
+      }
+
+      if (bodyInput && (!bodyInput.value || bodyInput.value.includes('Ajay Autade\nDevOps & Cloud Infrastructure Engineer'))) {
+        bodyInput.value = getUniversalDefaultPitch(p);
+      }
+    }
+
+    window.syncBulkPitchFromProfile = syncPitchFromProfile;
+    syncPitchFromProfile(userProfile);
+
+    let stagedRecipients = [];
+    let currentImageFile = null;
+    let currentCsvFile = null;
+    let pollInterval = null;
+
+    // Tab Switching
+    function switchBulkTab(mode) {
+      if (tabBtnText) tabBtnText.classList.toggle('active', mode === 'text');
+      if (tabBtnImage) tabBtnImage.classList.toggle('active', mode === 'image');
+      if (tabBtnCsv) tabBtnCsv.classList.toggle('active', mode === 'csv');
+
+      if (paneText) paneText.style.display = mode === 'text' ? 'flex' : 'none';
+      if (paneImage) paneImage.style.display = mode === 'image' ? 'flex' : 'none';
+      if (paneCsv) paneCsv.style.display = mode === 'csv' ? 'flex' : 'none';
+    }
+
+    if (tabBtnText) tabBtnText.addEventListener('click', () => switchBulkTab('text'));
+    if (tabBtnImage) tabBtnImage.addEventListener('click', () => switchBulkTab('image'));
+    if (tabBtnCsv) tabBtnCsv.addEventListener('click', () => switchBulkTab('csv'));
+
+    // Example Sample Text
+    if (exampleSampleBtn) {
+      exampleSampleBtn.addEventListener('click', () => {
+        rawTextInput.value = `sarah.recruiter@stripe.com, Tech Recruiter at Stripe
+vikas.hr@razorpay.com (Hiring Manager, Razorpay)
+"Connect with Priya Sharma at priya.s@swiggy.in for DevOps openings"
+john.talent@uber.com
+hr-support@netflix.com, Cloud Lead`;
+        showToast('Inserted sample recruiter contacts', 'info');
+      });
+    }
+
+    // Parse Text
+    if (parseTextBtn) {
+      parseTextBtn.addEventListener('click', async () => {
+        const text = (rawTextInput.value || '').trim();
+        if (!text) {
+          showToast('Please paste at least one email address or text block', 'warning');
+          return;
+        }
+
+        parseTextBtn.disabled = true;
+        const origHtml = parseTextBtn.innerHTML;
+        parseTextBtn.innerHTML = '<span class="spinner" style="width: 14px; height: 14px; margin-right: 6px;"></span> Parsing...';
+
+        try {
+          const res = await fetch('/api/campaign/bulk-parse', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rawText: text })
+          });
+          const data = await res.json();
+          if (data.success && data.recipients && data.recipients.length > 0) {
+            mergeRecipients(data.recipients);
+            showToast(`Parsed ${data.recipients.length} valid email(s)!`, 'success');
+          } else {
+            showToast(data.error || 'No valid email addresses found in the text', 'error');
+          }
+        } catch (err) {
+          showToast('Failed to parse emails: ' + err.message, 'error');
+        } finally {
+          parseTextBtn.disabled = false;
+          parseTextBtn.innerHTML = origHtml;
+        }
+      });
+    }
+
+    if (clearTextBtn) {
+      clearTextBtn.addEventListener('click', () => {
+        rawTextInput.value = '';
+      });
+    }
+
+    // Image File Selection & Preview
+    function setBulkImageFile(file) {
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        showToast('Please select a valid image file (PNG, JPG, WEBP, HEIC)', 'error');
+        return;
+      }
+      currentImageFile = file;
+      previewName.textContent = file.name || 'pasted-screenshot.png';
+      previewSize.textContent = `${(file.size / 1024).toFixed(1)} KB`;
+      const url = URL.createObjectURL(file);
+      previewImg.src = url;
+
+      previewCard.style.display = 'flex';
+      dropzone.style.display = 'none';
+      if (ocrLoadingState) ocrLoadingState.style.display = 'none';
+    }
+
+    function clearBulkImageFile() {
+      currentImageFile = null;
+      if (fileInput) fileInput.value = '';
+      previewCard.style.display = 'none';
+      dropzone.style.display = 'flex';
+      if (previewImg.src && previewImg.src.startsWith('blob:')) {
+        URL.revokeObjectURL(previewImg.src);
+      }
+      previewImg.src = '';
+    }
+
+    if (browseFileBtn && fileInput) {
+      browseFileBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        fileInput.click();
+      });
+    }
+
+    if (dropzone && fileInput) {
+      dropzone.addEventListener('click', () => fileInput.click());
+
+      dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.classList.add('drag-over');
+      });
+
+      dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('drag-over');
+      });
+
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('drag-over');
+        const files = Array.from(e.dataTransfer.files || []);
+        if (files.length > 0) {
+          setBulkImageFile(files[0]);
+        }
+      });
+
+      fileInput.addEventListener('change', (e) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length > 0) {
+          setBulkImageFile(files[0]);
+        }
+      });
+    }
+
+    if (removeImageBtn) {
+      removeImageBtn.addEventListener('click', clearBulkImageFile);
+    }
+
+    // Global Paste Listener for Screenshots (Cmd+V)
+    window.addEventListener('paste', (e) => {
+      // Check if Leads tab is visible
+      const leadsSec = document.getElementById('leadsSection');
+      if (!leadsSec || leadsSec.style.display === 'none') return;
+
+      const items = e.clipboardData && e.clipboardData.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const blob = items[i].getAsFile();
+          if (blob) {
+            e.preventDefault();
+            if (tabBtnImage) tabBtnImage.click();
+            setBulkImageFile(blob);
+            showToast('📋 Screenshot detected from clipboard and loaded!', 'info');
+            break;
+          }
+        }
+      }
+    });
+
+    // AI OCR Extraction
+    if (extractImageBtn) {
+      extractImageBtn.addEventListener('click', async () => {
+        if (!currentImageFile) {
+          showToast('Please select or paste an image first', 'warning');
+          return;
+        }
+
+        extractImageBtn.disabled = true;
+        ocrLoadingState.style.display = 'flex';
+        extractImageBtn.style.opacity = '0.5';
+
+        const formData = new FormData();
+        formData.append('image', currentImageFile);
+
+        try {
+          const res = await fetch('/api/campaign/bulk-extract-image', {
+            method: 'POST',
+            body: formData
+          });
+          const data = await res.json();
+          if (data.success && data.recipients && data.recipients.length > 0) {
+            mergeRecipients(data.recipients);
+            showToast(`✨ Gemini AI Vision extracted ${data.recipients.length} contact email(s) from screenshot!`, 'success');
+          } else {
+            showToast(data.error || 'No email addresses could be detected in this image. Try another screenshot.', 'error');
+          }
+        } catch (err) {
+          showToast('AI OCR scan error: ' + err.message, 'error');
+        } finally {
+          extractImageBtn.disabled = false;
+          extractImageBtn.style.opacity = '1';
+          ocrLoadingState.style.display = 'none';
+        }
+      });
+    }
+
+    // ── CSV File Selection & Upload ──
+    function setBulkCsvFile(file) {
+      if (!file) return;
+      currentCsvFile = file;
+      if (csvPreviewName) csvPreviewName.textContent = file.name || 'contacts.csv';
+      if (csvPreviewSize) csvPreviewSize.textContent = `${(file.size / 1024).toFixed(1)} KB`;
+      if (csvPreviewCard) csvPreviewCard.style.display = 'flex';
+      if (csvDropzone) csvDropzone.style.display = 'none';
+      if (csvLoadingState) csvLoadingState.style.display = 'none';
+    }
+
+    function clearBulkCsvFile() {
+      currentCsvFile = null;
+      if (csvFileInput) csvFileInput.value = '';
+      if (csvPreviewCard) csvPreviewCard.style.display = 'none';
+      if (csvDropzone) csvDropzone.style.display = 'flex';
+    }
+
+    if (browseCsvBtn && csvFileInput) {
+      browseCsvBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        csvFileInput.click();
+      });
+    }
+
+    if (csvDropzone && csvFileInput) {
+      csvDropzone.addEventListener('click', () => csvFileInput.click());
+      csvDropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        csvDropzone.classList.add('drag-over');
+      });
+      csvDropzone.addEventListener('dragleave', () => {
+        csvDropzone.classList.remove('drag-over');
+      });
+      csvDropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        csvDropzone.classList.remove('drag-over');
+        const files = Array.from(e.dataTransfer.files || []);
+        if (files.length > 0) setBulkCsvFile(files[0]);
+      });
+      csvFileInput.addEventListener('change', (e) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length > 0) setBulkCsvFile(files[0]);
+      });
+    }
+
+    if (removeCsvBtn) {
+      removeCsvBtn.addEventListener('click', clearBulkCsvFile);
+    }
+
+    if (parseCsvBtn) {
+      parseCsvBtn.addEventListener('click', async () => {
+        if (!currentCsvFile) {
+          showToast('Please select a CSV or TXT file first', 'warning');
+          return;
+        }
+
+        parseCsvBtn.disabled = true;
+        if (csvLoadingState) csvLoadingState.style.display = 'flex';
+        parseCsvBtn.style.opacity = '0.5';
+
+        const formData = new FormData();
+        formData.append('csvFile', currentCsvFile);
+        formData.append('saveToMaster', csvSaveToMasterCheckbox ? csvSaveToMasterCheckbox.checked : true);
+
+        try {
+          const res = await fetch('/api/contacts/upload-csv', {
+            method: 'POST',
+            body: formData
+          });
+          const data = await res.json();
+          if (data.success && data.recipients && data.recipients.length > 0) {
+            mergeRecipients(data.recipients);
+            const masterMsg = data.savedToMaster ? ` (Master Database: ${data.masterTotal} total)` : '';
+            showToast(`✅ Successfully parsed ${data.count} contacts from ${data.fileName}!${masterMsg}`, 'success');
+            if (typeof loadExtractedHRContacts === 'function') {
+              loadExtractedHRContacts(1);
+            }
+          } else {
+            showToast(data.error || 'No valid email contacts found in CSV', 'error');
+          }
+        } catch (err) {
+          showToast('CSV import error: ' + err.message, 'error');
+        } finally {
+          parseCsvBtn.disabled = false;
+          parseCsvBtn.style.opacity = '1';
+          if (csvLoadingState) csvLoadingState.style.display = 'none';
+        }
+      });
+    }
+
+    // Staging List Operations
+    function mergeRecipients(newItems) {
+      const existingEmails = new Set(stagedRecipients.map(r => r.email.toLowerCase()));
+      for (const item of newItems) {
+        if (!item || !item.email) continue;
+        const norm = item.email.toLowerCase().trim();
+        if (!existingEmails.has(norm)) {
+          existingEmails.add(norm);
+          const isBounced = !!(item.is_bounced || item.isBounced);
+          const isContacted = !!(item.already_contacted || item.isContacted);
+          stagedRecipients.push({
+            id: item.id || ('recip_' + Math.random().toString(36).substr(2, 9)),
+            email: norm,
+            name: item.name || '',
+            phone: item.phone || item.number || '',
+            company: item.company || '',
+            role: item.role || item.title || '',
+            selected: !isBounced, // auto-uncheck bounced emails
+            isBounced: isBounced,
+            bounceReason: item.bounceReason || item.bounce_reason || '',
+            isContacted: isContacted,
+            lastContacted: item.last_contacted_at || item.lastContacted || null
+          });
+        }
+      }
+      renderStagedUI();
+    }
+
+    function renderStagedUI() {
+      if (stagedRecipients.length === 0) {
+        stagingSection.style.display = 'none';
+        return;
+      }
+      stagingSection.style.display = 'flex';
+
+      const total = stagedRecipients.length;
+      const selected = stagedRecipients.filter(r => r.selected).length;
+      const ready = stagedRecipients.filter(r => !r.isBounced && !r.isContacted).length;
+      const contacted = stagedRecipients.filter(r => r.isContacted && !r.isBounced).length;
+      const bounced = stagedRecipients.filter(r => r.isBounced).length;
+
+      stagedTotalCount.textContent = total;
+      stagedSelectedCount.textContent = selected;
+      dispatchCountLabel.textContent = selected;
+
+      statBadgeAll.textContent = `Total: ${total}`;
+      statBadgeReady.textContent = `Ready to Send: ${ready}`;
+      statBadgeContacted.textContent = `Previously Contacted: ${contacted}`;
+      statBadgeBounced.textContent = `Bounced / Risky: ${bounced}`;
+
+      if (masterCheckbox) {
+        masterCheckbox.checked = selected === total && total > 0;
+        masterCheckbox.indeterminate = selected > 0 && selected < total;
+      }
+
+      startDispatchBtn.disabled = selected === 0;
+
+      // Render table rows
+      tableBody.innerHTML = '';
+      stagedRecipients.forEach(r => {
+        const tr = document.createElement('tr');
+        if (r.isBounced) {
+          tr.style.opacity = '0.65';
+          tr.style.background = 'rgba(239, 68, 68, 0.05)';
+        }
+
+        let badgeHtml = '';
+        if (r.isBounced) {
+          badgeHtml = `<span class="badge-staged badge-staged-bounced" title="${r.bounceReason || 'Past delivery failure'}">🛑 Bounced</span>`;
+        } else if (r.isContacted) {
+          const dateStr = r.lastContacted ? new Date(r.lastContacted).toLocaleDateString() : 'Previously';
+          badgeHtml = `<span class="badge-staged badge-staged-contacted" title="Last emailed on ${dateStr}">📫 Contacted (${dateStr})</span>`;
+        } else {
+          badgeHtml = `<span class="badge-staged badge-staged-ready">✅ Ready to Email</span>`;
+        }
+
+        const nameDisplay = r.name || 'Hiring Manager';
+        const roleDisplay = r.role ? `<span style="font-size: 11px; color: #94a3b8; display: block;">${r.role}</span>` : '';
+        const companyDisplay = r.company || 'Tech Company';
+        const phoneDisplay = r.phone 
+          ? `<a href="tel:${r.phone}" style="color: #34d399; font-size: 12px; font-family: monospace; text-decoration: none;" title="Call or WhatsApp contact">📞 ${r.phone}</a>` 
+          : `<span style="color: #64748b; font-size: 11px;">—</span>`;
+
+        tr.innerHTML = `
+          <td style="text-align: center;">
+            <input type="checkbox" class="bulk-row-check" data-id="${r.id}" ${r.selected ? 'checked' : ''}>
+          </td>
+          <td>
+            <strong style="color: #f1f5f9; font-size: 13px;">${nameDisplay}</strong>
+            ${roleDisplay}
+          </td>
+          <td>
+            <code style="color: #a5b4fc; font-size: 12.5px;">${r.email}</code>
+          </td>
+          <td>
+            ${phoneDisplay}
+          </td>
+          <td>
+            <span style="color: #cbd5e1; font-size: 12.5px;">${companyDisplay}</span>
+          </td>
+          <td>
+            ${badgeHtml}
+          </td>
+          <td style="text-align: right;">
+            <button type="button" class="btn btn-ghost btn-xs text-danger bulk-delete-btn" data-id="${r.id}" title="Remove from list">✕</button>
+          </td>
+        `;
+        tableBody.appendChild(tr);
+      });
+
+      // Bind row events
+      tableBody.querySelectorAll('.bulk-row-check').forEach(chk => {
+        chk.addEventListener('change', (e) => {
+          const id = e.target.getAttribute('data-id');
+          const target = stagedRecipients.find(x => x.id === id);
+          if (target) {
+            target.selected = e.target.checked;
+            updateSelectionCounts();
+          }
+        });
+      });
+
+      tableBody.querySelectorAll('.bulk-delete-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = e.currentTarget.getAttribute('data-id');
+          stagedRecipients = stagedRecipients.filter(x => x.id !== id);
+          renderStagedUI();
+        });
+      });
+    }
+
+    function updateSelectionCounts() {
+      const total = stagedRecipients.length;
+      const selected = stagedRecipients.filter(r => r.selected).length;
+      stagedSelectedCount.textContent = selected;
+      dispatchCountLabel.textContent = selected;
+      startDispatchBtn.disabled = selected === 0;
+
+      if (masterCheckbox) {
+        masterCheckbox.checked = selected === total && total > 0;
+        masterCheckbox.indeterminate = selected > 0 && selected < total;
+      }
+    }
+
+    // Selection buttons
+    if (masterCheckbox) {
+      masterCheckbox.addEventListener('change', (e) => {
+        const val = e.target.checked;
+        stagedRecipients.forEach(r => r.selected = val);
+        renderStagedUI();
+      });
+    }
+
+    if (selectAllBtn) {
+      selectAllBtn.addEventListener('click', () => {
+        stagedRecipients.forEach(r => r.selected = true);
+        renderStagedUI();
+      });
+    }
+
+    if (selectValidOnlyBtn) {
+      selectValidOnlyBtn.addEventListener('click', () => {
+        stagedRecipients.forEach(r => {
+          r.selected = !r.isBounced && !r.isContacted;
+        });
+        renderStagedUI();
+        showToast('Selected only verified uncontacted recipients', 'info');
+      });
+    }
+
+    if (deselectAllBtn) {
+      deselectAllBtn.addEventListener('click', () => {
+        stagedRecipients.forEach(r => r.selected = false);
+        renderStagedUI();
+      });
+    }
+
+    if (clearStagedBtn) {
+      clearStagedBtn.addEventListener('click', () => {
+        stagedRecipients = [];
+        renderStagedUI();
+        showToast('Cleared staged recipient list', 'info');
+      });
+    }
+
+    if (resetPitchBtn) {
+      resetPitchBtn.addEventListener('click', () => {
+        bodyInput.value = getUniversalDefaultPitch(userProfile);
+        showToast('Reset pitch body to high-converting tailored application template', 'info');
+      });
+    }
+
+    // Dispatch Outbound
+    if (startDispatchBtn) {
+      startDispatchBtn.addEventListener('click', async () => {
+        const activeRecipients = stagedRecipients.filter(r => r.selected);
+        if (activeRecipients.length === 0) {
+          showToast('Please select at least one recipient', 'warning');
+          return;
+        }
+
+        const p = userProfile || {};
+        const candidateName = p.name || 'Candidate';
+        const candidateRole = (p.target_roles ? p.target_roles.split(',')[0].trim() : '') || p.title || 'Software Professional';
+
+        const subject = (subjectInput.value || '').trim() || `${candidateRole} Application - ${candidateName}`;
+        const bodyTemplate = (bodyInput.value || '').trim() || getUniversalDefaultPitch(p);
+        const aiPersonalize = aiPersonalizeToggle ? aiPersonalizeToggle.checked : true;
+        const attachResume = attachResumeCheckbox ? attachResumeCheckbox.checked : true;
+        const jitterMode = dispatchPace ? dispatchPace.value : 'safe';
+
+        startDispatchBtn.disabled = true;
+        startDispatchBtn.style.display = 'none';
+        if (stopDispatchBtn) stopDispatchBtn.style.display = 'inline-flex';
+        monitorCard.style.display = 'block';
+
+        appendTerminalLog(`[System] Launching cold email outreach to ${activeRecipients.length} recipients...`, 'info');
+
+        try {
+          const res = await fetch('/api/campaign/bulk-dispatch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              recipients: activeRecipients,
+              subject,
+              bodyTemplate,
+              aiPersonalize,
+              attachResume,
+              jitterMode
+            })
+          });
+
+          const data = await res.json();
+          if (data.success) {
+            showToast(`🚀 Dispatched bulk cold campaign for ${data.total} recipients!`, 'success');
+            startStatusPolling();
+          } else {
+            showToast(data.error || 'Failed to start bulk dispatch', 'error');
+            startDispatchBtn.disabled = false;
+            startDispatchBtn.style.display = 'inline-flex';
+            if (stopDispatchBtn) stopDispatchBtn.style.display = 'none';
+          }
+        } catch (err) {
+          showToast('Dispatch error: ' + err.message, 'error');
+          startDispatchBtn.disabled = false;
+          startDispatchBtn.style.display = 'inline-flex';
+          if (stopDispatchBtn) stopDispatchBtn.style.display = 'none';
+        }
+      });
+    }
+
+    if (stopDispatchBtn) {
+      stopDispatchBtn.addEventListener('click', async () => {
+        stopDispatchBtn.disabled = true;
+        try {
+          const res = await fetch('/api/campaign/bulk-stop', { method: 'POST' });
+          const data = await res.json();
+          showToast(data.message || 'Stopping dispatch...', 'info');
+        } catch (e) {
+          showToast('Failed to stop dispatch', 'error');
+        }
+      });
+    }
+
+    function appendTerminalLog(msg, type = 'info') {
+      if (!terminalLog) return;
+      const div = document.createElement('div');
+      div.className = `log-entry log-${type}`;
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      terminalLog.appendChild(div);
+      terminalLog.scrollTop = terminalLog.scrollHeight;
+    }
+
+    function startStatusPolling() {
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = setInterval(pollBulkStatus, 2000);
+      pollBulkStatus();
+    }
+
+    async function pollBulkStatus() {
+      try {
+        const res = await fetch('/api/campaign/bulk-status');
+        const json = await res.json();
+        const state = json.status || json || {};
+
+        const total = state.total || 0;
+        const sent = state.sentCount || 0;
+        const failed = state.failedCount || 0;
+        const remaining = total > 0 ? Math.max(0, total - (sent + failed)) : 0;
+
+        statSent.textContent = sent;
+        statFailed.textContent = failed;
+        statRemaining.textContent = remaining;
+        statTotal.textContent = total;
+
+        const pct = state.percent ?? (total > 0 ? Math.round(((sent + failed) / total) * 100) : 0);
+        monitorProgressBar.style.width = `${pct}%`;
+        monitorPercentage.textContent = `${pct}%`;
+
+        if (state.currentEmail) {
+          monitorStatusText.textContent = `Processing: ${state.currentEmail}${state.currentCompany ? ' (' + state.currentCompany + ')' : ''}...`;
+        }
+
+        // Render latest logs
+        if (Array.isArray(state.logs) && state.logs.length > 0) {
+          terminalLog.innerHTML = '';
+          state.logs.forEach(l => {
+            const div = document.createElement('div');
+            let cls = 'log-info';
+            if (l.type === 'success' || (l.message && l.message.includes('Sent:'))) cls = 'log-success';
+            else if (l.type === 'error' || (l.message && l.message.includes('Failed:'))) cls = 'log-error';
+            else if (l.type === 'warn' || (l.message && l.message.includes('Stopped'))) cls = 'log-warn';
+            div.className = `log-entry ${cls}`;
+            div.textContent = `[${new Date(l.time).toLocaleTimeString()}] ${l.message}`;
+            terminalLog.appendChild(div);
+          });
+          terminalLog.scrollTop = terminalLog.scrollHeight;
+        }
+
+        if (state.isRunning) {
+          // Actively running in background
+          monitorCard.style.display = 'block';
+          startDispatchBtn.style.display = 'none';
+          stopDispatchBtn.style.display = 'inline-flex';
+          stopDispatchBtn.disabled = false;
+        } else {
+          // Idle or finished
+          if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+          }
+          startDispatchBtn.disabled = false;
+          startDispatchBtn.style.display = 'inline-flex';
+          stopDispatchBtn.style.display = 'none';
+          stopDispatchBtn.disabled = false;
+          
+          if (state.completedAt && total > 0) {
+            monitorStatusText.textContent = state.shouldStop ? 'Outreach Stopped.' : 'All Emails Dispatched!';
+            if (!state.shouldStop) {
+              showToast(`🎉 Bulk outreach completed! Sent: ${sent}, Failed: ${failed}`, 'success');
+            }
+          } else {
+            monitorStatusText.textContent = 'Ready';
+          }
+        }
+      } catch (e) {
+        // Silent fail during poll
+      }
+    }
+
+    // Check if background job already running on load
+    pollBulkStatus();
+  }
+
+  // Load bounce stats & live job stats & extracted HR on initial boot
+  loadBounceStats();
+  loadLiveJobStats();
+  loadExtractedHRContacts(1);
+  initBulkOutreachModule();
 });

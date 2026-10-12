@@ -6,6 +6,34 @@ const fs = require('fs');
 const nodemailer = require('nodemailer');
 const cors = require('cors');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const {
+  cleanGmailBouncesNow,
+  startAutoBounceCleaner,
+  validateEmailDeliverability,
+  isEmailBounced,
+  getBouncedRecords
+} = require('./bounceManager');
+const {
+  recordExtractedHR,
+  getExtractedHRContacts,
+  exportToCSV,
+  backfillFromExistingHistory
+} = require('./extractedHrManager');
+const {
+  parseRawTextEmails,
+  extractEmailsFromImage,
+  startBulkOutreach,
+  getBulkStatus,
+  stopBulkOutreach
+} = require('./bulkColdMailer');
+const {
+  MASTER_CSV_PATH,
+  parseAnyCsv,
+  getAllContacts,
+  saveAllContacts,
+  appendBatchContacts,
+  consolidateAllSources
+} = require('./masterCsvManager');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -58,6 +86,18 @@ const uploadResume = multer({
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     if (extname) return cb(null, true);
     cb(new Error('Only PDF, DOC, DOCX files are allowed'));
+  }
+});
+
+const uploadCsv = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB CSV
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ext === '.csv' || ext === '.txt' || ext === '.tsv' || (file.mimetype && (file.mimetype.includes('csv') || file.mimetype.includes('text')))) {
+      return cb(null, true);
+    }
+    cb(new Error('Only CSV, TSV, or TXT files are allowed'));
   }
 });
 
@@ -161,7 +201,7 @@ function getSavedResume() {
         const filePath = path.join(resumeDir, latestFile);
         return {
           path: filePath,
-          originalName: 'AjayAutadeDevopsResume-9545034120.pdf'
+          originalName: latestFile
         };
       }
     }
@@ -333,6 +373,13 @@ async function sendEmailHelper({ to, subject, body, cc, bcc, resumePath, resumeO
     throw new Error('Missing required fields: to, subject, body');
   }
 
+  // Pre-send deliverability check (DNS MX verification & bounce blacklist protection)
+  const deliverability = await validateEmailDeliverability(to);
+  if (!deliverability.valid) {
+    console.warn(`[BounceShield] 🚫 Blocked email dispatch to ${to}: ${deliverability.reason}`);
+    throw new Error(`[BounceShield] Cannot send to ${to}: ${deliverability.reason}`);
+  }
+
   if (!process.env.GMAIL_USER || process.env.GMAIL_USER === 'your_email@gmail.com') {
     throw new Error('Please configure GMAIL_USER in .env file');
   }
@@ -371,7 +418,7 @@ async function sendEmailHelper({ to, subject, body, cc, bcc, resumePath, resumeO
   const currentResume = resumePath ? { path: resumePath, originalName: resumeOriginalName } : getSavedResume();
   if (currentResume.path && fs.existsSync(currentResume.path)) {
     mailOptions.attachments = [{
-      filename: currentResume.originalName || 'AjayAutadeDevopsResume-9545034120.pdf',
+      filename: currentResume.originalName || 'Resume.pdf',
       path: currentResume.path
     }];
   }
@@ -396,6 +443,16 @@ const autoPilot = initAutoPilot({
 });
 
 const leadFinder = initLeadFinder({
+  watchDir: path.resolve(process.env.WATCH_FOLDER || './auto_jobs'),
+  generateWithFallback,
+  parseJsonFromText,
+  getSavedResume,
+  sendEmailFn: sendEmailHelper,
+  autoPilot
+});
+
+const { initJobBoardWatcher } = require('./jobBoardWatcher');
+const jobWatcher = initJobBoardWatcher({
   watchDir: path.resolve(process.env.WATCH_FOLDER || './auto_jobs'),
   generateWithFallback,
   parseJsonFromText,
@@ -450,7 +507,7 @@ app.post('/api/analyze', (req, res) => {
   "key_requirements": ["requirement1", "requirement2"],
   "key_skills": ["skill1", "skill2"],
   "contact_email": "The email address mentioned for applications (search every corner of ALL screenshots for HR email, recruiter email, contact email, apply-to email)",
-  "contact_phone": "The recruiter/HR mobile phone number or WhatsApp number if mentioned (e.g. 10-digit number like 9545034120, +91 9876543210, etc.), otherwise null",
+  "contact_phone": "The recruiter/HR mobile phone number or WhatsApp number if mentioned (e.g. 10-digit number like 9876543210, +91 9876543210, etc.), otherwise null",
   "contact_person": "Name of the hiring manager/HR person/recruiter if mentioned",
   "location": "Job location if mentioned",
   "job_type": "Full-time/Part-time/Contract/Remote etc.",
@@ -513,6 +570,21 @@ IMPORTANT:
         }
       }
 
+      // Automatically record extracted HR contact from manual upload
+      let extractedContact = null;
+      try {
+        extractedContact = recordExtractedHR({
+          name: jobData.contact_person,
+          company: jobData.company_name,
+          email: jobData.contact_email,
+          jobTitle: jobData.job_title,
+          phone: jobData.contact_phone,
+          source: (files && files.length > 0 && files[0].originalname) ? files[0].originalname : 'Manual Upload Screenshot'
+        });
+      } catch (hrErr) {
+        console.warn('[Manual Mode] Failed to record extracted HR contact:', hrErr.message);
+      }
+
       // Smart role-aware duplicate detection check
       let duplicateInfo = null;
       if (autoPilot && autoPilot.isDuplicate && jobData.contact_email) {
@@ -527,9 +599,9 @@ IMPORTANT:
       }
 
       const userDetails = {
-        name: process.env.YOUR_NAME || 'Er. Ajay Autade',
-        email: process.env.YOUR_EMAIL || process.env.GMAIL_USER || 'ajayautade2@gmail.com',
-        phone: process.env.YOUR_PHONE || '+91 9545034120',
+        name: process.env.YOUR_NAME || 'Candidate Name',
+        email: process.env.YOUR_EMAIL || process.env.GMAIL_USER || 'candidate@example.com',
+        phone: process.env.YOUR_PHONE || '',
         linkedin: process.env.YOUR_LINKEDIN || '',
         github: process.env.YOUR_GITHUB || '',
         portfolio: process.env.YOUR_PORTFOLIO || ''
@@ -811,6 +883,20 @@ app.post('/api/whatsapp/generate-message', async (req, res) => {
   }
 });
 
+app.post('/api/whatsapp/import-csv', (req, res) => {
+  try {
+    const csvPath = (req.body && req.body.csv_path) || path.join(__dirname, 'hr_contacts.csv');
+    if (!autoPilot.importWhatsAppLeadsFromCSV) {
+      return res.status(500).json({ error: 'importWhatsAppLeadsFromCSV not initialized' });
+    }
+    const result = autoPilot.importWhatsAppLeadsFromCSV(csvPath);
+    res.json(result);
+  } catch (err) {
+    console.error('[API] /api/whatsapp/import-csv error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ──────────────────────────────────────────────
 // API: Recruiter Cold Outreach & Lead Finder Endpoints
 // ──────────────────────────────────────────────
@@ -882,7 +968,7 @@ app.delete('/api/leads/:id', (req, res) => {
 });
 
 // ──────────────────────────────────────────────
-// API: Autonomous Daily 100 DevOps Campaign Endpoints
+// API: Autonomous Daily 100 HR Cold Mail Campaign Endpoints
 // ──────────────────────────────────────────────
 app.get('/api/campaign/status', (req, res) => {
   try {
@@ -890,6 +976,23 @@ app.get('/api/campaign/status', (req, res) => {
     res.json({ success: true, ...status });
   } catch (err) {
     res.status(500).json({ error: 'Failed to get campaign status', details: err.message });
+  }
+});
+
+app.get('/api/campaign/hr-contacts', (req, res) => {
+  try {
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 50;
+    const search = req.query.search || '';
+    const status = req.query.status || 'ALL';
+
+    const result = leadFinder.getHRContactsList
+      ? leadFinder.getHRContactsList({ page, limit, search, status })
+      : { total: 0, contacts: [] };
+
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to get HR contacts', details: err.message });
   }
 });
 
@@ -916,6 +1019,19 @@ app.post('/api/campaign/start', async (req, res) => {
   }
 });
 
+app.post('/api/campaign/send-hr', async (req, res) => {
+  try {
+    const { contact } = req.body;
+    if (!contact || !contact.email) {
+      return res.status(400).json({ error: 'Missing contact or email' });
+    }
+    const result = await leadFinder.sendDirectHRContact(contact);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to send HR email', details: err.message });
+  }
+});
+
 app.post('/api/campaign/stop', (req, res) => {
   try {
     const result = leadFinder.stopDailyCampaign();
@@ -925,33 +1041,264 @@ app.post('/api/campaign/stop', (req, res) => {
   }
 });
 
-// ──────────────────────────────────────────────
-// API: Profile & AI Persona Configuration
-// ──────────────────────────────────────────────
-app.get('/api/profile', (req, res) => {
+app.post('/api/campaign/reset', (req, res) => {
   try {
-    const profile = getUserProfile();
-    res.json({ success: true, profile });
+    const result = leadFinder.resetHRCampaign ? leadFinder.resetHRCampaign() : { success: true };
+    res.json(result);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to load profile', details: err.message });
+    res.status(500).json({ error: 'Failed to reset campaign', details: err.message });
   }
 });
 
-app.post('/api/profile', (req, res) => {
+// ──────────────────────────────────────────────
+// API: Custom Bulk Email & Image OCR Cold Outreach
+// ──────────────────────────────────────────────
+
+// 1. Parse raw pasted emails (text, CSV, or unstructured text)
+app.post('/api/campaign/bulk-parse', (req, res) => {
   try {
-    const updated = saveUserProfile(req.body);
+    const text = req.body.text || req.body.rawText || '';
+    if (!text || typeof text !== 'string' || !text.trim()) {
+      return res.status(400).json({ error: 'Please paste one or more email addresses.' });
+    }
+
+    // Load history records to flag already contacted emails
+    const historyFile = path.join(autoPilot.watchDir || './auto_jobs', 'history.json');
+    let history = [];
+    if (fs.existsSync(historyFile)) {
+      try { history = JSON.parse(fs.readFileSync(historyFile, 'utf8')); } catch (_) {}
+    }
+
+    // Load bounced emails
+    const bouncedData = getBouncedRecords ? getBouncedRecords() : {};
+    const bouncedSet = new Set(Object.keys(bouncedData.bouncedEmails || {}).map(e => e.toLowerCase().trim()));
+
+    const recipients = parseRawTextEmails(text, history, bouncedSet);
     res.json({
       success: true,
-      message: 'Profile & AI Persona saved successfully',
-      profile: updated
+      count: recipients.length,
+      recipients
     });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to save profile', details: err.message });
+    console.error('[API] /api/campaign/bulk-parse error:', err.message);
+    res.status(500).json({ error: 'Failed to parse emails', details: err.message });
   }
 });
 
-app.get('/api/profile/presets', (req, res) => {
-  res.json({ success: true, presets: ROLE_PRESETS });
+// 2. Multimodal Gemini Vision OCR: Extract emails from uploaded image / screenshot
+app.post('/api/campaign/bulk-extract-image', uploadScreenshot.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file uploaded' });
+    }
+
+    const imageBuffer = fs.readFileSync(req.file.path);
+    const mimeType = getMimeType(req.file);
+
+    // Load history records
+    const historyFile = path.join(autoPilot.watchDir || './auto_jobs', 'history.json');
+    let history = [];
+    if (fs.existsSync(historyFile)) {
+      try { history = JSON.parse(fs.readFileSync(historyFile, 'utf8')); } catch (_) {}
+    }
+
+    // Load bounced emails
+    const bouncedData = getBouncedRecords ? getBouncedRecords() : {};
+    const bouncedSet = new Set(Object.keys(bouncedData.bouncedEmails || {}).map(e => e.toLowerCase().trim()));
+
+    const recipients = await extractEmailsFromImage({
+      imageBuffer,
+      mimeType,
+      generateWithFallback,
+      parseJsonFromText,
+      historyRecords: history,
+      bouncedEmails: bouncedSet
+    });
+
+    // Clean up temporary uploaded image
+    try {
+      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    } catch (_) {}
+
+    res.json({
+      success: true,
+      count: recipients.length,
+      recipients
+    });
+  } catch (err) {
+    console.error('[API] /api/campaign/bulk-extract-image error:', err.message);
+    // Clean up on error
+    if (req.file && fs.existsSync(req.file.path)) {
+      try { fs.unlinkSync(req.file.path); } catch (_) {}
+    }
+    res.status(500).json({ error: 'Failed to extract emails from image', details: err.message });
+  }
+});
+
+// 2b. Universal CSV Import: Upload & parse ANY custom CSV file
+const handleCsvUpload = async (req, res) => {
+  try {
+    if (!req.file || !req.file.buffer) {
+      return res.status(400).json({ error: 'Please upload a CSV or TXT file' });
+    }
+
+    const textContent = req.file.buffer.toString('utf8');
+    const parsedContacts = parseAnyCsv(textContent);
+
+    if (parsedContacts.length === 0) {
+      return res.status(400).json({ error: 'No valid contacts with email addresses were found in the uploaded file.' });
+    }
+
+    // Auto-save to master hr_contacts.csv so all imported contacts merge into master
+    const saveToMaster = req.body.saveToMaster !== 'false';
+    let appendResult = { appended: 0, enriched: 0, total: 0 };
+    if (saveToMaster) {
+      appendResult = appendBatchContacts(parsedContacts.map(c => ({
+        ...c,
+        source: `CSV Import: ${req.file.originalname || 'custom_upload.csv'}`
+      })));
+    }
+
+    // Load history records to check who was contacted
+    const historyFile = path.join(autoPilot.watchDir || './auto_jobs', 'history.json');
+    let history = [];
+    if (fs.existsSync(historyFile)) {
+      try { history = JSON.parse(fs.readFileSync(historyFile, 'utf8')); } catch (_) {}
+    }
+    const contactedSet = new Set(history.map(h => (h.recipientEmail || h.email || '').toLowerCase().trim()));
+
+    // Load bounced emails
+    const bouncedData = getBouncedRecords ? getBouncedRecords() : {};
+    const bouncedSet = new Set(Object.keys(bouncedData.bouncedEmails || {}).map(e => e.toLowerCase().trim()));
+
+    // Map to staged format
+    const recipients = parsedContacts.map((c, idx) => {
+      const emailLower = (c.email || '').toLowerCase().trim();
+      const isContacted = contactedSet.has(emailLower);
+      const isBounced = bouncedSet.has(emailLower);
+
+      return {
+        id: `csv-${Date.now()}-${idx}`,
+        name: c.name || 'Hiring Leader',
+        email: emailLower,
+        phone: c.phone || '',
+        company: c.company || 'Tech Company',
+        role: c.title || 'Technical Specialist',
+        source: req.file.originalname || 'Custom CSV Import',
+        status: isBounced ? 'Bounced' : isContacted ? 'Contacted' : 'Ready',
+        selected: !isBounced && !isContacted
+      };
+    });
+
+    res.json({
+      success: true,
+      count: recipients.length,
+      fileName: req.file.originalname,
+      savedToMaster: saveToMaster,
+      appendedToMaster: appendResult.appended,
+      enrichedInMaster: appendResult.enriched,
+      masterTotal: appendResult.total,
+      recipients
+    });
+  } catch (err) {
+    console.error('[API] /api/contacts/upload-csv error:', err.message);
+    res.status(500).json({ error: 'Failed to parse and process CSV', details: err.message });
+  }
+};
+
+app.post('/api/contacts/upload-csv', uploadCsv.single('csvFile'), handleCsvUpload);
+app.post('/api/campaign/bulk-upload-csv', uploadCsv.single('csvFile'), handleCsvUpload);
+
+// 2c. Download Consolidated Master CSV
+app.get('/api/contacts/download-master-csv', (req, res) => {
+  try {
+    if (!fs.existsSync(MASTER_CSV_PATH)) {
+      return res.status(404).json({ error: 'Master CSV file not found' });
+    }
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="hr_contacts_master.csv"');
+    fs.createReadStream(MASTER_CSV_PATH).pipe(res);
+  } catch (err) {
+    console.error('[API] /api/contacts/download-master-csv error:', err.message);
+    res.status(500).json({ error: 'Failed to download master CSV', details: err.message });
+  }
+});
+
+// 2d. Trigger master consolidation of all CSVs and leads
+app.post('/api/contacts/consolidate-master', (req, res) => {
+  try {
+    const result = consolidateAllSources();
+    res.json({
+      success: true,
+      message: `Consolidated all contacts into master CSV successfully!`,
+      total: result.total,
+      withPhone: result.withPhone,
+      csvPath: result.csvPath
+    });
+  } catch (err) {
+    console.error('[API] /api/contacts/consolidate-master error:', err.message);
+    res.status(500).json({ error: 'Failed to consolidate master CSV', details: err.message });
+  }
+});
+
+// 3. Start bulk cold email dispatch
+app.post('/api/campaign/bulk-dispatch', async (req, res) => {
+  try {
+    const recipients = req.body.recipients || [];
+    const custom_subject = req.body.custom_subject || req.body.subject || '';
+    const custom_body = req.body.custom_body || req.body.bodyTemplate || req.body.body || '';
+    const use_ai_personalization = req.body.use_ai_personalization ?? req.body.aiPersonalize ?? false;
+    const speed = req.body.speed || req.body.jitterMode || 'safe';
+
+    if (!Array.isArray(recipients) || recipients.length === 0) {
+      return res.status(400).json({ error: 'Please select at least one recipient to dispatch emails.' });
+    }
+
+    const currentResume = getSavedResume();
+    const profile = getUserProfile();
+
+    const result = await startBulkOutreach({
+      recipients,
+      customSubject: custom_subject,
+      customBody: custom_body,
+      useAiPersonalization: Boolean(use_ai_personalization),
+      speed: speed || 'safe',
+      resumePath: currentResume.path,
+      resumeOriginalName: currentResume.originalName,
+      profile,
+      sendEmailFn: sendEmailHelper,
+      autoPilot,
+      recordExtractedHR,
+      isEmailBounced,
+      generateWithFallback,
+      parseJsonFromText
+    });
+
+    res.json(result);
+  } catch (err) {
+    console.error('[API] /api/campaign/bulk-dispatch error:', err.message);
+    res.status(500).json({ error: 'Failed to start bulk outreach', details: err.message });
+  }
+});
+
+// 4. Live status of bulk cold email campaign
+app.get('/api/campaign/bulk-status', (req, res) => {
+  try {
+    const status = getBulkStatus();
+    res.json({ success: true, status });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch bulk status', details: err.message });
+  }
+});
+
+// 5. Stop bulk outreach
+app.post('/api/campaign/bulk-stop', (req, res) => {
+  try {
+    const result = stopBulkOutreach();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to stop bulk outreach', details: err.message });
+  }
 });
 
 // ──────────────────────────────────────────────
@@ -977,6 +1324,134 @@ app.get('/api/settings', (req, res) => {
   });
 });
 
+// ──────────────────────────────────────────────
+// API: Bounce Cleaner & Inbox Sanitizer
+// ──────────────────────────────────────────────
+app.get('/api/bounces/stats', (req, res) => {
+  res.json(getBouncedRecords());
+});
+
+app.post('/api/bounces/clean', async (req, res) => {
+  try {
+    const result = await cleanGmailBouncesNow();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ──────────────────────────────────────────────
+// API: Extracted HR Contacts (from Screenshots)
+// ──────────────────────────────────────────────
+app.get('/api/extracted-hr', (req, res) => {
+  try {
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 20;
+    const search = req.query.search || '';
+    const result = getExtractedHRContacts({ page, limit, search });
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch extracted HR contacts', details: err.message });
+  }
+});
+
+app.get('/api/extracted-hr/download', (req, res) => {
+  try {
+    const csvContent = exportToCSV();
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="extracted_hr_contacts.csv"');
+    res.send(csvContent);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to export CSV', details: err.message });
+  }
+});
+
+app.post('/api/extracted-hr/sync', (req, res) => {
+  try {
+    const count = backfillFromExistingHistory();
+    res.json({ success: true, count });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to sync contacts', details: err.message });
+  }
+});
+
+// ──────────────────────────────────────────────
+// API: Live Job Board Watcher & ATS Radar Endpoints
+// ──────────────────────────────────────────────
+app.get('/api/jobs/live', (req, res) => {
+  try {
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 20;
+    const search = req.query.search || '';
+    const status = req.query.status || 'ACTIVE';
+    const min_ats_score = parseInt(req.query.min_ats_score, 10) || 0;
+    const location_filter = req.query.location_filter || 'ALL';
+
+    const result = jobWatcher.getLiveJobs({
+      page,
+      limit,
+      search,
+      status,
+      min_ats_score,
+      location_filter
+    });
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch live jobs', details: err.message });
+  }
+});
+
+app.get('/api/jobs/stats', (req, res) => {
+  try {
+    const stats = jobWatcher.getJobStats();
+    res.json({ success: true, stats });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to get job stats', details: err.message });
+  }
+});
+
+app.post('/api/jobs/scan', async (req, res) => {
+  try {
+    const result = await jobWatcher.scanLiveJobs();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to scan live jobs', details: err.message });
+  }
+});
+
+app.post('/api/jobs/:id/generate-pitch', async (req, res) => {
+  try {
+    const pitch = await jobWatcher.generateJobPitch(req.params.id);
+    res.json({ success: true, pitch });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to generate job pitch', details: err.message });
+  }
+});
+
+app.post('/api/jobs/:id/apply', async (req, res) => {
+  try {
+    const { custom_email, custom_subject, custom_body } = req.body;
+    const result = await jobWatcher.applyToJob(req.params.id, {
+      customEmail: custom_email,
+      customSubject: custom_subject,
+      customBody: custom_body
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message, details: err.message });
+  }
+});
+
+app.patch('/api/jobs/:id/status', (req, res) => {
+  try {
+    const { status, notes } = req.body;
+    const updated = jobWatcher.updateJobStatus(req.params.id, status, notes);
+    res.json({ success: true, job: updated });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update job status', details: err.message });
+  }
+});
+
 // Serve index.html
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -988,6 +1463,15 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: err.message || 'Internal server error' });
 });
 
+// Process-level crash prevention guards for background network jobs (IMAP, DNS, ATS Crawlers)
+process.on('uncaughtException', (err) => {
+  console.error('[Process] Uncaught Exception handled:', err.message);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[Process] Unhandled Rejection handled:', reason?.message || reason);
+});
+
 app.listen(PORT, () => {
   console.log(`\n🚀 Job Apply AI is running at http://localhost:${PORT}`);
   console.log(`\n📋 Setup Checklist:`);
@@ -997,4 +1481,34 @@ app.listen(PORT, () => {
   console.log(`   📂 Auto-Pilot Watch Folder: ${autoPilot.watchDir}`);
   console.log(`\n💡 Get your Gemini API key at: https://aistudio.google.com/apikey`);
   console.log(`💡 Get Gmail App Password at: https://myaccount.google.com/apppasswords\n`);
+
+  // Start background periodic bounce cleaner (sweeps Inbox every 1 minute)
+  startAutoBounceCleaner(1);
+
+  // Background Autonomous Job Radar: Startup check for daily refresh (if >24h elapsed)
+  setTimeout(async () => {
+    try {
+      if (jobWatcher.isDailyRefreshDue && jobWatcher.isDailyRefreshDue()) {
+        console.log('[JobWatcher] 🕒 24-hour daily refresh window reached or first run. Triggering autonomous job refresh...');
+        await jobWatcher.scanLiveJobs();
+      } else {
+        const last = jobWatcher.getLastScannedAt ? jobWatcher.getLastScannedAt() : 'recently';
+        console.log(`[JobWatcher] ⏳ Live jobs are current (last scan: ${last}). Next daily refresh scheduled.`);
+      }
+    } catch (e) {
+      console.warn('[JobWatcher] Startup daily scan check error:', e.message);
+    }
+  }, 4000);
+
+  // Background Autonomous Job Radar: Check every 30 minutes to trigger daily refresh when 24h expires
+  setInterval(async () => {
+    try {
+      if (jobWatcher.isDailyRefreshDue && jobWatcher.isDailyRefreshDue()) {
+        console.log('[JobWatcher] 🕒 24 hours elapsed since last ATS crawl. Triggering automated daily refresh...');
+        await jobWatcher.scanLiveJobs();
+      }
+    } catch (e) {
+      console.warn('[JobWatcher] Automated daily refresh error:', e.message);
+    }
+  }, 30 * 60 * 1000);
 });
