@@ -100,6 +100,11 @@
         <span class="tab-title">Live Job Radar</span>
         <span class="tab-badge" id="liveJobsTabBadge" style="background: rgba(6, 182, 212, 0.2); color: #22d3ee;">Live ATS</span>
       </button>
+      <button class="mode-tab" id="tabInbox" data-tab="inbox">
+        <span class="tab-icon">📬</span>
+        <span class="tab-title">Inbox AI</span>
+        <span class="tab-badge" id="inboxTabBadge" style="background: rgba(16, 185, 129, 0.25); color: #34d399; display: none;">0 replies</span>
+      </button>
     </div>
 
     <!-- ═══════════════════════════════════════════════ -->
@@ -1492,6 +1497,125 @@ Or messy text:
       </div>
     </section>
 
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- TWO-WAY INBOX INTELLIGENCE & AUTO-REPLY DETECTION -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <section class="inbox-section" id="inboxSection" style="display: none; flex-direction: column; gap: 24px;">
+      <!-- Hero Card -->
+      <div class="card inbox-hero-card">
+        <div class="card-header" style="flex-wrap: wrap; gap: 16px;">
+          <div>
+            <h2 class="card-title">
+              <span style="font-size: 22px;">📬</span>
+              Two-Way Inbox Intelligence & Auto-Reply Radar
+            </h2>
+            <p class="card-subtitle">
+              Listens to your Gmail inbox for incoming recruiter replies, categorizes intent via Gemini AI, stops scheduled follow-up cadences automatically upon response or rejection, and prepares one-click response drafts.
+            </p>
+          </div>
+          <div class="card-actions" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <div class="inbox-time-select-wrapper" style="display: flex; align-items: center; gap: 6px;">
+              <label for="inboxScanDays" style="font-size: 12px; color: var(--text-muted);">Scan Range:</label>
+              <select id="inboxScanDays" class="form-input" style="padding: 6px 10px; font-size: 12px; width: auto; height: 34px;">
+                <option value="7">Last 7 Days</option>
+                <option value="14" selected>Last 14 Days</option>
+                <option value="30">Last 30 Days</option>
+              </select>
+            </div>
+            <button class="btn btn-primary btn-sm" id="scanInboxBtn">
+              <span id="scanInboxIcon">⚡</span>
+              <span id="scanInboxLabel">Scan Inbox Now</span>
+            </button>
+            <button class="btn btn-secondary btn-sm" id="markAllInboxReadBtn">
+              <span>✔️</span>
+              <span>Mark All Read</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Metric Counters Grid -->
+        <div class="inbox-metrics-grid">
+          <div class="inbox-metric-card metric-interview">
+            <div class="metric-icon">🟢</div>
+            <div class="metric-info">
+              <div class="metric-value" id="metricInterviewCount">0</div>
+              <div class="metric-label">Interview Invites</div>
+            </div>
+          </div>
+          <div class="inbox-metric-card metric-positive">
+            <div class="metric-icon">🌟</div>
+            <div class="metric-info">
+              <div class="metric-value" id="metricPositiveCount">0</div>
+              <div class="metric-label">Positive Interest</div>
+            </div>
+          </div>
+          <div class="inbox-metric-card metric-info">
+            <div class="metric-icon">❓</div>
+            <div class="metric-info">
+              <div class="metric-value" id="metricInfoCount">0</div>
+              <div class="metric-label">Questions / CTC</div>
+            </div>
+          </div>
+          <div class="inbox-metric-card metric-rejection">
+            <div class="metric-icon">🛑</div>
+            <div class="metric-info">
+              <div class="metric-value" id="metricRejectionCount">0</div>
+              <div class="metric-label">Rejections Stopped</div>
+            </div>
+          </div>
+          <div class="inbox-metric-card metric-ooo">
+            <div class="metric-icon">🟡</div>
+            <div class="metric-info">
+              <div class="metric-value" id="metricOooCount">0</div>
+              <div class="metric-label">Out of Office</div>
+            </div>
+          </div>
+          <div class="inbox-metric-card metric-total">
+            <div class="metric-icon">📨</div>
+            <div class="metric-info">
+              <div class="metric-value" id="metricTotalCount">0</div>
+              <div class="metric-label">Tracked Replies</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Feed Card -->
+      <div class="card inbox-feed-card">
+        <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <h3 style="font-size: 16px; font-weight: 600; color: #f1f5f9; margin: 0;">Recruiter Responses & AI Actions</h3>
+            <span id="inboxLastScanInfo" style="font-size: 12px; color: var(--text-muted);">Last checked: Never</span>
+          </div>
+
+          <!-- Filter Pills -->
+          <div class="inbox-filter-pills" id="inboxFilterPills">
+            <button type="button" class="inbox-pill active" data-filter="ALL">All (<span id="pillCountAll">0</span>)</button>
+            <button type="button" class="inbox-pill" data-filter="INTERVIEW">🟢 Interviews (<span id="pillCountInterview">0</span>)</button>
+            <button type="button" class="inbox-pill" data-filter="INFO">❓ Questions (<span id="pillCountInfo">0</span>)</button>
+            <button type="button" class="inbox-pill" data-filter="REJECTION">🛑 Rejections (<span id="pillCountRejection">0</span>)</button>
+            <button type="button" class="inbox-pill" data-filter="OOO">🟡 Out of Office (<span id="pillCountOoo">0</span>)</button>
+          </div>
+        </div>
+
+        <!-- Replies List Container -->
+        <div id="inboxRepliesList" class="inbox-replies-list">
+          <!-- Empty State -->
+          <div class="history-empty" id="inboxEmptyState" style="padding: 48px 24px;">
+            <div class="history-empty-icon" style="font-size: 40px; margin-bottom: 12px;">📬</div>
+            <div class="history-empty-title" style="font-size: 17px; font-weight: 600; color: #f1f5f9;">No Recruiter Replies Detected Yet</div>
+            <div class="history-empty-desc" style="max-width: 480px; margin: 8px auto 20px; font-size: 13.5px; color: var(--text-muted); line-height: 1.5;">
+              When HRs or recruiters respond to your cold emails or follow-ups, they will be captured here in real-time with AI sentiment categorization, automatic cadence auto-stops, and ready-to-send reply drafts.
+            </div>
+            <button class="btn btn-secondary btn-sm" id="inboxEmptyScanBtn">
+              ⚡ Trigger Immediate Gmail Scan
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
     <!-- AI Pitch & Application Review Modal -->
     <div class="modal-overlay" id="jobPitchModal" style="display: none;">
       <div class="modal modal-lg">
@@ -1621,6 +1745,82 @@ Or messy text:
             YOUR_NAME=Your Name<br>
             YOUR_PHONE=+91 XXXXXXXXXX
           </code>
+        </div>
+      </div>
+    </div>
+  <!-- AI Reply Drafter Modal -->
+  <div class="modal-overlay" id="inboxReplyModal" style="display: none;">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div>
+          <h3 style="margin: 0; font-size: 18px; color: #fff; display: flex; align-items: center; gap: 8px;">
+            <span>⚡</span> AI Smart Reply Drafter
+          </h3>
+          <p style="margin: 4px 0 0 0; font-size: 12.5px; color: var(--text-muted);" id="inboxModalSubtitle">
+            Compose a human-sounding reply tailored to this recruiter's message.
+          </p>
+        </div>
+        <button class="btn-icon" id="closeInboxReplyModalBtn">✕</button>
+      </div>
+
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
+        <!-- Recruiter & Thread Summary Banner -->
+        <div class="inbox-modal-recruiter-box" id="inboxModalRecruiterBox">
+          <!-- Populated dynamically -->
+        </div>
+
+        <!-- Quick Tone Selector -->
+        <div>
+          <label style="display: block; font-size: 12.5px; font-weight: 600; color: #cbd5e1; margin-bottom: 8px;">
+            Reply Tone & Strategy:
+          </label>
+          <div class="inbox-tone-pills" id="inboxTonePills">
+            <button type="button" class="tone-pill active" data-tone="flexible">🔥 Available for Interview (Propose Slots)</button>
+            <button type="button" class="tone-pill" data-tone="courteous">💼 Professional & Courteous</button>
+            <button type="button" class="tone-pill" data-tone="direct">⏱️ Direct Answer (CTC & Notice Period)</button>
+            <button type="button" class="tone-pill" data-tone="graceful">🤝 Graceful Networking (Acknowledge Rejection)</button>
+          </div>
+        </div>
+
+        <!-- Custom Instructions -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label for="inboxCustomPrompt" style="font-size: 12.5px; font-weight: 600; color: #cbd5e1;">
+              Specific Details / Talking Points (Optional):
+            </label>
+            <span style="font-size: 11px; color: var(--text-muted);">e.g., "Available Thursday 3 PM, 30 days notice"</span>
+          </div>
+          <textarea id="inboxCustomPrompt" class="form-textarea" rows="2" placeholder="Add custom constraints, available time slots, salary expectations, or portfolio links..." style="font-size: 13px;"></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end;">
+          <button class="btn btn-secondary btn-sm" id="inboxRegenerateDraftBtn">
+            <span>✨</span>
+            <span id="inboxRegenerateLabel">Regenerate Draft with Gemini</span>
+          </button>
+        </div>
+
+        <!-- Generated Draft Textarea -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label for="inboxReplyDraftText" style="font-size: 12.5px; font-weight: 600; color: #cbd5e1;">
+              Email Reply Draft:
+            </label>
+            <span id="inboxDraftCharCount" style="font-size: 11px; color: var(--text-muted);">0 words</span>
+          </div>
+          <textarea id="inboxReplyDraftText" class="form-textarea" rows="7" style="font-family: inherit; font-size: 13.5px; line-height: 1.6;"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <button class="btn btn-ghost" id="cancelInboxReplyModalBtn">Close</button>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn btn-secondary" id="copyInboxDraftBtn">
+            📋 Copy to Clipboard
+          </button>
+          <a href="#" target="_blank" class="btn btn-primary" id="openGmailDraftBtn" style="text-decoration: none;">
+            🚀 Open Pre-filled in Gmail
+          </a>
         </div>
       </div>
     </div>

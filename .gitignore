@@ -43,6 +43,7 @@ auto_jobs/daily_stats.json
 auto_jobs/follow_ups.json
 auto_jobs/whatsapp_leads.json
 auto_jobs/recruiter_leads.json
+auto_jobs/inbox_replies.json
 
 # User Uploads & Uploaded Resumes (NEVER COMMIT PERSONAL RESUMES)
 public/uploads/*

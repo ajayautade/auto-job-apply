@@ -24,6 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const whatsAppTabBadge = document.getElementById('whatsAppTabBadge');
   const bouncesTabBadge = document.getElementById('bouncesTabBadge');
   const liveJobsTabBadge = document.getElementById('liveJobsTabBadge');
+  const tabInbox = document.getElementById('tabInbox');
+  const inboxSection = document.getElementById('inboxSection');
+  const inboxTabBadge = document.getElementById('inboxTabBadge');
 
   // WhatsApp Filter Elements
   const whatsAppSearchInput = document.getElementById('whatsAppSearchInput');
@@ -275,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let rolePresets = {};
   let currentPresetId = 'devops';
 
-  // ── Mode Switcher (8 Tabs) ──
+  // ── Mode Switcher (9 Tabs) ──
   tabAutoPilot.addEventListener('click', () => switchMode('autopilot'));
   tabManual.addEventListener('click', () => switchMode('manual'));
   if (tabLeads) tabLeads.addEventListener('click', () => switchMode('leads'));
@@ -283,6 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (tabWhatsApp) tabWhatsApp.addEventListener('click', () => switchMode('whatsapp'));
   if (tabBounces) tabBounces.addEventListener('click', () => switchMode('bounces'));
   if (tabLiveJobs) tabLiveJobs.addEventListener('click', () => switchMode('livejobs'));
+  if (tabInbox) tabInbox.addEventListener('click', () => switchMode('inbox'));
 
   function switchMode(mode) {
     tabAutoPilot.classList.toggle('active', mode === 'autopilot');
@@ -292,6 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tabWhatsApp) tabWhatsApp.classList.toggle('active', mode === 'whatsapp');
     if (tabBounces) tabBounces.classList.toggle('active', mode === 'bounces');
     if (tabLiveJobs) tabLiveJobs.classList.toggle('active', mode === 'livejobs');
+    if (tabInbox) tabInbox.classList.toggle('active', mode === 'inbox');
 
     autopilotSection.style.display = mode === 'autopilot' ? 'flex' : 'none';
     manualSectionContainer.style.display = mode === 'manual' ? 'block' : 'none';
@@ -300,6 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (whatsappSection) whatsappSection.style.display = mode === 'whatsapp' ? 'flex' : 'none';
     if (bouncesSection) bouncesSection.style.display = mode === 'bounces' ? 'flex' : 'none';
     if (livejobsSection) livejobsSection.style.display = mode === 'livejobs' ? 'flex' : 'none';
+    if (inboxSection) inboxSection.style.display = mode === 'inbox' ? 'flex' : 'none';
 
     loadingSection.style.display = 'none';
     reviewSection.style.display = 'none';
@@ -322,6 +328,8 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (mode === 'livejobs') {
       loadLiveJobStats();
       loadLiveJobs(1);
+    } else if (mode === 'inbox') {
+      if (typeof loadInboxReplies === 'function') loadInboxReplies();
     }
   }
 
@@ -869,9 +877,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (item.status === 'SENT') {
         statusBadge = '<span class="badge badge-sent"><span class="badge-dot"></span>SENT</span>';
       } else if (item.status === 'REPLIED') {
-        statusBadge = '<span class="badge badge-replied"><span class="badge-dot"></span>REPLIED</span>';
+        const note = item.notes ? ` (${escapeHtml(item.notes)})` : ' (HR Replied)';
+        statusBadge = `<span class="badge badge-replied" title="Follow-up cadence halted automatically by Inbox Intelligence"><span class="badge-dot"></span>🛑 HALTED${note}</span>`;
       } else if (item.status === 'CANCELLED') {
-        statusBadge = '<span class="badge badge-cancelled"><span class="badge-dot"></span>CANCELLED</span>';
+        const note = item.notes ? ` (${escapeHtml(item.notes)})` : '';
+        statusBadge = `<span class="badge badge-cancelled" title="Cadence cancelled: ${escapeHtml(item.notes || 'Auto-stopped')}"><span class="badge-dot"></span>🛑 CANCELLED${note}</span>`;
+      } else if (item.notes && item.notes.includes('Out of Office')) {
+        statusBadge = `<span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);" title="${escapeHtml(item.notes)}"><span class="badge-dot"></span>🟡 POSTPONED (OOO)</span>`;
       } else if (isDue) {
         statusBadge = '<span class="badge badge-due-now"><span class="badge-dot"></span>DUE NOW</span>';
       } else {
@@ -2035,6 +2047,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadFollowUps();
   loadWhatsAppLeads();
   loadBounceStats();
+  if (typeof loadInboxReplies === 'function') loadInboxReplies(false);
 
   // Auto-poll history, daily stats, leads, campaign, followups, whatsapp, bounces periodically
   setInterval(() => {
@@ -2049,8 +2062,17 @@ document.addEventListener('DOMContentLoaded', () => {
       loadWhatsAppLeads();
     } else if (bouncesSection && bouncesSection.style.display !== 'none') {
       loadBounceStats();
+    } else if (inboxSection && inboxSection.style.display !== 'none') {
+      if (typeof loadInboxReplies === 'function') loadInboxReplies(false);
     }
   }, 4000);
+
+  // Background light poll for Inbox Intelligence every 25 seconds
+  setInterval(() => {
+    if (typeof loadInboxReplies === 'function') {
+      loadInboxReplies(false);
+    }
+  }, 25000);
 
   // ── Settings Check ──
   async function checkSettings() {
@@ -4202,4 +4224,569 @@ hr-support@netflix.com, Cloud Lead`;
   loadLiveJobStats();
   loadExtractedHRContacts(1);
   initBulkOutreachModule();
+  initInboxIntelligenceModule();
+
+  // ═══════════════════════════════════════════════
+  // TWO-WAY INBOX INTELLIGENCE & AUTO-REPLY MODULE
+  // ═══════════════════════════════════════════════
+  function initInboxIntelligenceModule() {
+    const scanInboxBtn = document.getElementById('scanInboxBtn');
+    const scanInboxIcon = document.getElementById('scanInboxIcon');
+    const scanInboxLabel = document.getElementById('scanInboxLabel');
+    const inboxScanDays = document.getElementById('inboxScanDays');
+    const markAllInboxReadBtn = document.getElementById('markAllInboxReadBtn');
+    const inboxEmptyScanBtn = document.getElementById('inboxEmptyScanBtn');
+
+    const metricInterviewCount = document.getElementById('metricInterviewCount');
+    const metricPositiveCount = document.getElementById('metricPositiveCount');
+    const metricInfoCount = document.getElementById('metricInfoCount');
+    const metricRejectionCount = document.getElementById('metricRejectionCount');
+    const metricOooCount = document.getElementById('metricOooCount');
+    const metricTotalCount = document.getElementById('metricTotalCount');
+
+    const inboxLastScanInfo = document.getElementById('inboxLastScanInfo');
+    const inboxFilterPills = document.getElementById('inboxFilterPills');
+    const inboxRepliesList = document.getElementById('inboxRepliesList');
+    const inboxEmptyState = document.getElementById('inboxEmptyState');
+
+    const pillCountAll = document.getElementById('pillCountAll');
+    const pillCountInterview = document.getElementById('pillCountInterview');
+    const pillCountInfo = document.getElementById('pillCountInfo');
+    const pillCountRejection = document.getElementById('pillCountRejection');
+    const pillCountOoo = document.getElementById('pillCountOoo');
+
+    // Modal elements
+    const inboxReplyModal = document.getElementById('inboxReplyModal');
+    const closeInboxReplyModalBtn = document.getElementById('closeInboxReplyModalBtn');
+    const cancelInboxReplyModalBtn = document.getElementById('cancelInboxReplyModalBtn');
+    const inboxModalRecruiterBox = document.getElementById('inboxModalRecruiterBox');
+    const inboxTonePills = document.getElementById('inboxTonePills');
+    const inboxCustomPrompt = document.getElementById('inboxCustomPrompt');
+    const inboxRegenerateDraftBtn = document.getElementById('inboxRegenerateDraftBtn');
+    const inboxRegenerateLabel = document.getElementById('inboxRegenerateLabel');
+    const inboxReplyDraftText = document.getElementById('inboxReplyDraftText');
+    const inboxDraftCharCount = document.getElementById('inboxDraftCharCount');
+    const copyInboxDraftBtn = document.getElementById('copyInboxDraftBtn');
+    const openGmailDraftBtn = document.getElementById('openGmailDraftBtn');
+
+    let cachedReplies = [];
+    let currentFilter = 'ALL';
+    let currentModalReply = null;
+    let currentTone = 'flexible';
+    const notifiedInviteIds = new Set();
+
+    // ── Web Audio Synthesized Chime ──
+    function playInterviewChime() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const now = ctx.currentTime;
+        const freqs = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6 major chord
+        freqs.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.11);
+          gain.gain.setValueAtTime(0, now + idx * 0.11);
+          gain.gain.linearRampToValueAtTime(0.22, now + idx * 0.11 + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.11 + 0.45);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + idx * 0.11);
+          osc.stop(now + idx * 0.11 + 0.5);
+        });
+      } catch (e) {
+        console.warn('Audio chime warning:', e);
+      }
+    }
+
+    function triggerInviteAlert(item) {
+      if (notifiedInviteIds.has(item.id)) return;
+      notifiedInviteIds.add(item.id);
+      playInterviewChime();
+      showToast(`🟢 Alert: ${item.from_name || 'HR'} at ${item.company_name} wants to schedule a call / interview!`, 'success');
+
+      if ('Notification' in window) {
+        if (Notification.permission === 'granted') {
+          new Notification(`🎉 Interview Invitation!`, {
+            body: `${item.from_name || 'HR'} (${item.company_name}): "${item.ai_summary || item.message_snippet}"`,
+            icon: '/favicon.ico'
+          });
+        } else if (Notification.permission !== 'denied') {
+          Notification.requestPermission();
+        }
+      }
+    }
+
+    // ── Fetch Replies ──
+    async function loadInboxReplies(showLoadingToast = false) {
+      try {
+        const res = await fetch('/api/inbox/replies');
+        const data = await res.json();
+        if (!data.success) return;
+
+        cachedReplies = data.replies || [];
+        const stats = data.stats || {};
+
+        // Update stats counters
+        if (metricInterviewCount) metricInterviewCount.textContent = stats.interview_invites || 0;
+        if (metricPositiveCount) metricPositiveCount.textContent = stats.positive_interest || 0;
+        if (metricInfoCount) metricInfoCount.textContent = stats.info_requested || 0;
+        if (metricRejectionCount) metricRejectionCount.textContent = stats.rejections || 0;
+        if (metricOooCount) metricOooCount.textContent = stats.out_of_office || 0;
+        if (metricTotalCount) metricTotalCount.textContent = stats.total_replies || 0;
+
+        // Update filter pills count
+        if (pillCountAll) pillCountAll.textContent = cachedReplies.length;
+        if (pillCountInterview) {
+          pillCountInterview.textContent = cachedReplies.filter(r => r.intent === 'INTERVIEW_INVITATION' || r.intent === 'POSITIVE_INTEREST').length;
+        }
+        if (pillCountInfo) {
+          pillCountInfo.textContent = cachedReplies.filter(r => r.intent === 'INFO_REQUESTED').length;
+        }
+        if (pillCountRejection) {
+          pillCountRejection.textContent = cachedReplies.filter(r => r.intent === 'REJECTION').length;
+        }
+        if (pillCountOoo) {
+          pillCountOoo.textContent = cachedReplies.filter(r => r.intent === 'OUT_OF_OFFICE').length;
+        }
+
+        // Update Tab Badge
+        if (inboxTabBadge) {
+          const unreadCount = stats.unread_count || 0;
+          if (unreadCount > 0) {
+            inboxTabBadge.style.display = 'inline-block';
+            inboxTabBadge.textContent = `${unreadCount} new`;
+            if (stats.interview_invites > 0) {
+              inboxTabBadge.style.background = 'rgba(16, 185, 129, 0.35)';
+              inboxTabBadge.style.boxShadow = '0 0 10px rgba(16, 185, 129, 0.5)';
+            }
+          } else {
+            inboxTabBadge.style.display = cachedReplies.length > 0 ? 'inline-block' : 'none';
+            inboxTabBadge.textContent = `${cachedReplies.length} replies`;
+            inboxTabBadge.style.boxShadow = 'none';
+          }
+        }
+
+        // Last scan info
+        if (inboxLastScanInfo && data.last_scanned_at) {
+          const dt = new Date(data.last_scanned_at);
+          inboxLastScanInfo.textContent = `Last scanned: ${dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (${dt.toLocaleDateString()})`;
+        }
+
+        // Check for new interview invites to alert candidate
+        cachedReplies.forEach(r => {
+          if ((r.intent === 'INTERVIEW_INVITATION' || r.urgency === 'URGENT') && !r.is_read) {
+            triggerInviteAlert(r);
+          }
+        });
+
+        renderInboxRepliesList();
+
+        if (showLoadingToast) {
+          showToast(`Inbox refreshed: ${cachedReplies.length} replies loaded`, 'success');
+        }
+      } catch (e) {
+        console.warn('Failed to load inbox replies:', e.message);
+      }
+    }
+
+    // Expose globally so mode switch & timers can call it
+    window.loadInboxReplies = loadInboxReplies;
+
+    // ── Render Feed ──
+    function renderInboxRepliesList() {
+      if (!inboxRepliesList) return;
+
+      // Filter items
+      let filtered = cachedReplies;
+      if (currentFilter === 'INTERVIEW') {
+        filtered = cachedReplies.filter(r => r.intent === 'INTERVIEW_INVITATION' || r.intent === 'POSITIVE_INTEREST');
+      } else if (currentFilter === 'INFO') {
+        filtered = cachedReplies.filter(r => r.intent === 'INFO_REQUESTED');
+      } else if (currentFilter === 'REJECTION') {
+        filtered = cachedReplies.filter(r => r.intent === 'REJECTION');
+      } else if (currentFilter === 'OOO') {
+        filtered = cachedReplies.filter(r => r.intent === 'OUT_OF_OFFICE');
+      }
+
+      // Clear previous cards but keep empty state element
+      const existingCards = inboxRepliesList.querySelectorAll('.inbox-reply-card');
+      existingCards.forEach(c => c.remove());
+
+      if (filtered.length === 0) {
+        if (inboxEmptyState) inboxEmptyState.style.display = 'block';
+        return;
+      }
+
+      if (inboxEmptyState) inboxEmptyState.style.display = 'none';
+
+      filtered.forEach(item => {
+        const card = document.createElement('div');
+        card.className = `inbox-reply-card ${item.is_read ? 'read' : 'unread'}`;
+        card.setAttribute('data-id', item.id);
+
+        // Badge class & label
+        let intentBadgeClass = 'badge-intent-general';
+        let intentLabel = 'General Reply';
+        if (item.intent === 'INTERVIEW_INVITATION') {
+          intentBadgeClass = 'badge-intent-interview';
+          intentLabel = '🟢 Interview Invitation';
+        } else if (item.intent === 'POSITIVE_INTEREST') {
+          intentBadgeClass = 'badge-intent-positive';
+          intentLabel = '🌟 Positive Interest';
+        } else if (item.intent === 'INFO_REQUESTED') {
+          intentBadgeClass = 'badge-intent-info';
+          intentLabel = '❓ Info / CTC Needed';
+        } else if (item.intent === 'REJECTION') {
+          intentBadgeClass = 'badge-intent-rejection';
+          intentLabel = '🛑 Rejection';
+        } else if (item.intent === 'OUT_OF_OFFICE') {
+          intentBadgeClass = 'badge-intent-ooo';
+          intentLabel = '🟡 Out of Office';
+        }
+
+        let urgencyClass = 'urgency-medium';
+        if (item.urgency === 'URGENT') urgencyClass = 'urgency-urgent';
+        else if (item.urgency === 'HIGH') urgencyClass = 'urgency-high';
+
+        // Cadence impact indicator
+        let cadenceHtml = '';
+        if (item.intent === 'REJECTION') {
+          cadenceHtml = `<div class="inbox-cadence-impact cadence-stopped">🛑 Follow-up cadence auto-stopped & contact marked REJECTED</div>`;
+        } else if (item.intent === 'OUT_OF_OFFICE') {
+          const retStr = item.return_date ? `until ${escapeHtml(item.return_date)}` : 'past return date';
+          cadenceHtml = `<div class="inbox-cadence-impact cadence-rescheduled">🟡 Follow-up postponed ${retStr}</div>`;
+        } else {
+          cadenceHtml = `<div class="inbox-cadence-impact cadence-stopped">🛑 Follow-up cadence auto-stopped (Recruiter replied)</div>`;
+        }
+
+        const timeStr = item.received_at
+          ? new Date(item.received_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+          : 'Recent';
+
+        card.innerHTML = `
+          <div class="inbox-card-top">
+            <div class="inbox-sender-cluster">
+              <span class="inbox-sender-name">${escapeHtml(item.from_name || item.from_email)}</span>
+              <span class="inbox-company-badge">🏢 ${escapeHtml(item.company_name || 'Hiring Company')}</span>
+              <span style="font-size: 11.5px; color: var(--text-muted);">${escapeHtml(item.job_title || 'Role')}</span>
+            </div>
+            <div class="inbox-badge-cluster">
+              <span class="inbox-intent-badge ${intentBadgeClass}">${intentLabel}</span>
+              ${item.urgency ? `<span class="inbox-urgency-badge ${urgencyClass}">${escapeHtml(item.urgency)}</span>` : ''}
+              <span class="inbox-time-meta">${timeStr}</span>
+            </div>
+          </div>
+
+          <div class="inbox-subject-text">
+            <strong>Subject:</strong> ${escapeHtml(item.subject || 'Re: Job Application')}
+          </div>
+
+          <div class="inbox-snippet-quote">"${escapeHtml(item.message_snippet || '')}"</div>
+
+          <div class="inbox-ai-analysis">
+            <div class="inbox-ai-summary">
+              <strong>🤖 AI Insight:</strong> ${escapeHtml(item.ai_summary || 'Recruiter replied to your outreach thread.')}
+            </div>
+            <div class="inbox-ai-action">
+              <span>🎯</span>
+              <span><strong>Next Step:</strong> ${escapeHtml(item.recommended_action || 'Review and respond to the recruiter.')}</span>
+            </div>
+          </div>
+
+          ${cadenceHtml}
+
+          <div class="inbox-card-footer">
+            <div class="inbox-time-meta">
+              From: <a href="mailto:${escapeHtml(item.from_email)}" style="color: #94a3b8; text-decoration: none;">${escapeHtml(item.from_email)}</a>
+            </div>
+            <div class="inbox-card-btn-group">
+              <button class="btn btn-primary btn-sm inbox-draft-reply-btn" data-id="${escapeHtml(item.id)}" style="padding: 4px 10px; font-size: 11.5px;">
+                ⚡ Draft AI Reply
+              </button>
+              <a href="https://mail.google.com/mail/u/0/#search/${encodeURIComponent(item.from_email)}" target="_blank" class="btn btn-secondary btn-sm" style="padding: 4px 10px; font-size: 11.5px; text-decoration: none;">
+                ✉️ Open in Gmail
+              </a>
+              <button class="btn btn-ghost btn-sm inbox-toggle-read-btn" data-id="${escapeHtml(item.id)}" style="padding: 4px 8px; font-size: 11.5px;">
+                ${item.is_read ? 'Mark Unread' : 'Mark Read'}
+              </button>
+              <button class="btn btn-ghost btn-sm inbox-delete-reply-btn" data-id="${escapeHtml(item.id)}" title="Dismiss from list" style="padding: 4px 8px; font-size: 11.5px; color: #f87171;">
+                ✕
+              </button>
+            </div>
+          </div>
+        `;
+
+        inboxRepliesList.appendChild(card);
+      });
+
+      // Bind card buttons
+      inboxRepliesList.querySelectorAll('.inbox-draft-reply-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-id');
+          const reply = cachedReplies.find(r => r.id === id);
+          if (reply) openInboxReplyModal(reply);
+        });
+      });
+
+      inboxRepliesList.querySelectorAll('.inbox-toggle-read-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          await markReplyRead(id);
+        });
+      });
+
+      inboxRepliesList.querySelectorAll('.inbox-delete-reply-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          await deleteReplyItem(id);
+        });
+      });
+    }
+
+    // ── Filter Pills Click ──
+    if (inboxFilterPills) {
+      inboxFilterPills.querySelectorAll('.inbox-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+          inboxFilterPills.querySelectorAll('.inbox-pill').forEach(p => p.classList.remove('active'));
+          pill.classList.add('active');
+          currentFilter = pill.getAttribute('data-filter') || 'ALL';
+          renderInboxRepliesList();
+        });
+      });
+    }
+
+    // ── Scan Inbox Trigger ──
+    async function triggerInboxScan() {
+      const daysBack = inboxScanDays ? parseInt(inboxScanDays.value, 10) || 14 : 14;
+
+      if (scanInboxBtn) {
+        scanInboxBtn.disabled = true;
+        if (scanInboxIcon) scanInboxIcon.textContent = '⏳';
+        if (scanInboxLabel) scanInboxLabel.textContent = `Scanning Inbox (${daysBack}d)...`;
+      }
+      if (inboxEmptyScanBtn) inboxEmptyScanBtn.disabled = true;
+
+      showToast(`🔍 Scanning Gmail Inbox via IMAP for the last ${daysBack} days...`, 'info');
+
+      try {
+        const res = await fetch('/api/inbox/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ daysBack })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          const count = data.new_replies_found || 0;
+          showToast(`✅ Inbox scan finished! Found ${count} recruiter replies.`, 'success');
+          await loadInboxReplies();
+          if (typeof loadFollowUps === 'function') loadFollowUps();
+        } else {
+          showToast(`Inbox scan note: ${data.message || 'No new replies'}`, 'info');
+          await loadInboxReplies();
+        }
+      } catch (e) {
+        showToast(`Inbox scan error: ${e.message}`, 'error');
+      } finally {
+        if (scanInboxBtn) {
+          scanInboxBtn.disabled = false;
+          if (scanInboxIcon) scanInboxIcon.textContent = '⚡';
+          if (scanInboxLabel) scanInboxLabel.textContent = 'Scan Inbox Now';
+        }
+        if (inboxEmptyScanBtn) inboxEmptyScanBtn.disabled = false;
+      }
+    }
+
+    if (scanInboxBtn) scanInboxBtn.addEventListener('click', triggerInboxScan);
+    if (inboxEmptyScanBtn) inboxEmptyScanBtn.addEventListener('click', triggerInboxScan);
+
+    // ── Mark All Read ──
+    if (markAllInboxReadBtn) {
+      markAllInboxReadBtn.addEventListener('click', async () => {
+        try {
+          await fetch('/api/inbox/mark-read', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ all: true })
+          });
+          showToast('All replies marked as read', 'success');
+          loadInboxReplies();
+        } catch (e) {
+          showToast('Failed to mark all as read', 'error');
+        }
+      });
+    }
+
+    async function markReplyRead(id) {
+      try {
+        await fetch('/api/inbox/mark-read', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id })
+        });
+        const reply = cachedReplies.find(r => r.id === id);
+        if (reply) reply.is_read = true;
+        renderInboxRepliesList();
+      } catch (e) {}
+    }
+
+    async function deleteReplyItem(id) {
+      try {
+        await fetch(`/api/inbox/replies/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        cachedReplies = cachedReplies.filter(r => r.id !== id);
+        showToast('Reply dismissed', 'info');
+        renderInboxRepliesList();
+      } catch (e) {}
+    }
+
+    // ── Smart Reply Drafter Modal ──
+    function openInboxReplyModal(reply) {
+      currentModalReply = reply;
+      if (!inboxReplyModal) return;
+
+      // Mark reply as read
+      markReplyRead(reply.id);
+
+      // Populate recruiter info banner
+      if (inboxModalRecruiterBox) {
+        inboxModalRecruiterBox.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <strong>${escapeHtml(reply.from_name || 'Recruiter')}</strong> &lt;${escapeHtml(reply.from_email)}&gt;
+            </div>
+            <div style="font-weight: 600; color: #38bdf8;">${escapeHtml(reply.company_name)} • ${escapeHtml(reply.job_title)}</div>
+          </div>
+          <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
+            <strong>Their Message:</strong> "${escapeHtml(reply.message_snippet || '')}"
+          </div>
+        `;
+      }
+
+      // Pre-populate draft with initial AI suggested reply or default
+      const initialDraft = reply.suggested_reply ||
+        `Hi ${reply.from_name ? reply.from_name.split(' ')[0] : 'there'},\n\nThank you for reaching out and considering my profile for the ${reply.job_title} role at ${reply.company_name}. I would be delighted to connect for a quick discussion.\n\nI am available this week between 2:00 PM and 6:00 PM IST. Please let me know what time suits your calendar best, and I will be happy to join.\n\nLooking forward to speaking with you!\n\nBest regards,\nCandidate`;
+
+      if (inboxReplyDraftText) {
+        inboxReplyDraftText.value = initialDraft;
+        updateDraftWordCount();
+      }
+
+      // Reset tone & prompt
+      currentTone = reply.intent === 'REJECTION' ? 'graceful' : (reply.intent === 'INFO_REQUESTED' ? 'direct' : 'flexible');
+      if (inboxTonePills) {
+        inboxTonePills.querySelectorAll('.tone-pill').forEach(pill => {
+          pill.classList.toggle('active', pill.getAttribute('data-tone') === currentTone);
+        });
+      }
+
+      if (inboxCustomPrompt) inboxCustomPrompt.value = '';
+
+      updateGmailDraftLink();
+      inboxReplyModal.style.display = 'flex';
+    }
+
+    function closeInboxReplyModal() {
+      if (inboxReplyModal) inboxReplyModal.style.display = 'none';
+      currentModalReply = null;
+    }
+
+    if (closeInboxReplyModalBtn) closeInboxReplyModalBtn.addEventListener('click', closeInboxReplyModal);
+    if (cancelInboxReplyModalBtn) cancelInboxReplyModalBtn.addEventListener('click', closeInboxReplyModal);
+
+    // Tone Pills
+    if (inboxTonePills) {
+      inboxTonePills.querySelectorAll('.tone-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+          inboxTonePills.querySelectorAll('.tone-pill').forEach(p => p.classList.remove('active'));
+          pill.classList.add('active');
+          currentTone = pill.getAttribute('data-tone') || 'flexible';
+
+          // Suggest preset talking point in custom prompt if blank
+          if (inboxCustomPrompt && !inboxCustomPrompt.value.trim()) {
+            if (currentTone === 'flexible') inboxCustomPrompt.placeholder = 'e.g., Available Thursday at 4 PM, excited about the team tech stack';
+            else if (currentTone === 'direct') inboxCustomPrompt.placeholder = 'e.g., Current CTC: 12 LPA, Expected: 18 LPA, Notice: Immediate / 30 days';
+            else if (currentTone === 'graceful') inboxCustomPrompt.placeholder = 'e.g., Thank them warmly and ask to connect on LinkedIn';
+          }
+        });
+      });
+    }
+
+    // Regenerate draft with Gemini
+    if (inboxRegenerateDraftBtn) {
+      inboxRegenerateDraftBtn.addEventListener('click', async () => {
+        if (!currentModalReply) return;
+
+        inboxRegenerateDraftBtn.disabled = true;
+        if (inboxRegenerateLabel) inboxRegenerateLabel.textContent = 'Generating with Gemini AI...';
+
+        try {
+          const res = await fetch('/api/inbox/generate-reply', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              replyId: currentModalReply.id,
+              tone: currentTone,
+              customInstructions: inboxCustomPrompt ? inboxCustomPrompt.value.trim() : ''
+            })
+          });
+          const data = await res.json();
+          if (data.success && data.draft) {
+            if (inboxReplyDraftText) {
+              inboxReplyDraftText.value = data.draft;
+              updateDraftWordCount();
+              updateGmailDraftLink();
+            }
+            showToast('✨ New AI reply draft generated!', 'success');
+          } else {
+            showToast('Could not generate draft', 'error');
+          }
+        } catch (e) {
+          showToast('Error generating reply draft', 'error');
+        } finally {
+          inboxRegenerateDraftBtn.disabled = false;
+          if (inboxRegenerateLabel) inboxRegenerateLabel.textContent = 'Regenerate Draft with Gemini';
+        }
+      });
+    }
+
+    function updateDraftWordCount() {
+      if (!inboxReplyDraftText || !inboxDraftCharCount) return;
+      const text = inboxReplyDraftText.value.trim();
+      const words = text ? text.split(/\s+/).length : 0;
+      inboxDraftCharCount.textContent = `${words} words (${text.length} chars)`;
+    }
+
+    function updateGmailDraftLink() {
+      if (!openGmailDraftBtn || !currentModalReply) return;
+      const draftBody = inboxReplyDraftText ? inboxReplyDraftText.value : '';
+      const subj = currentModalReply.subject ? (currentModalReply.subject.toLowerCase().startsWith('re:') ? currentModalReply.subject : `Re: ${currentModalReply.subject}`) : 'Re: Application';
+      const toEmail = currentModalReply.from_email || '';
+
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(toEmail)}&su=${encodeURIComponent(subj)}&body=${encodeURIComponent(draftBody)}`;
+      openGmailDraftBtn.href = gmailUrl;
+    }
+
+    if (inboxReplyDraftText) {
+      inboxReplyDraftText.addEventListener('input', () => {
+        updateDraftWordCount();
+        updateGmailDraftLink();
+      });
+    }
+
+    // Copy to clipboard
+    if (copyInboxDraftBtn) {
+      copyInboxDraftBtn.addEventListener('click', async () => {
+        if (!inboxReplyDraftText) return;
+        try {
+          await navigator.clipboard.writeText(inboxReplyDraftText.value);
+          showToast('📋 Reply draft copied to clipboard!', 'success');
+        } catch (e) {
+          showToast('Failed to copy text', 'error');
+        }
+      });
+    }
+  }
 });

@@ -462,6 +462,18 @@ const jobWatcher = initJobBoardWatcher({
 });
 
 // ──────────────────────────────────────────────
+// Initialize Two-Way Inbox Intelligence & Auto-Reply Detection
+// ──────────────────────────────────────────────
+const { initInboxIntelligence } = require('./inboxIntelligenceManager');
+const inboxManager = initInboxIntelligence({
+  autoPilot,
+  generateWithFallback,
+  genAI,
+  getUserProfile
+});
+
+
+// ──────────────────────────────────────────────
 // API: Analyze Screenshot(s) with Gemini & Check Duplicate
 // ──────────────────────────────────────────────
 app.post('/api/analyze', (req, res) => {
@@ -845,6 +857,62 @@ app.post('/api/followups/process-due', async (req, res) => {
     res.json({ success: true, message: 'Processed due follow-ups' });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ──────────────────────────────────────────────
+// API: Two-Way Inbox Intelligence & Auto-Reply Endpoints
+// ──────────────────────────────────────────────
+app.get('/api/inbox/replies', (req, res) => {
+  try {
+    const data = inboxManager.getStoredRepliesData();
+    res.json({ success: true, ...data });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/inbox/scan', async (req, res) => {
+  try {
+    const daysBack = parseInt(req.body.daysBack, 10) || 14;
+    const result = await inboxManager.scanInboxNow({ daysBack });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/inbox/mark-read', (req, res) => {
+  try {
+    const { id, all } = req.body;
+    if (all) {
+      inboxManager.markAllRepliesAsRead();
+      return res.json({ success: true, message: 'All replies marked as read' });
+    }
+    const success = inboxManager.markReplyAsRead(id);
+    res.json({ success });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/inbox/generate-reply', async (req, res) => {
+  try {
+    const { replyId, customInstructions, tone } = req.body;
+    if (!replyId) return res.status(400).json({ success: false, error: 'Missing replyId' });
+    const draft = await inboxManager.generateCustomReplyDraft({ replyId, customInstructions, tone });
+    res.json({ success: true, draft });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/inbox/replies/:id', (req, res) => {
+  try {
+    const success = inboxManager.deleteReply(req.params.id);
+    res.json({ success });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -1484,6 +1552,10 @@ app.listen(PORT, () => {
 
   // Start background periodic bounce cleaner (sweeps Inbox every 1 minute)
   startAutoBounceCleaner(1);
+
+  // Start background periodic Inbox Intelligence scanner (sweeps Inbox for HR replies every 10 minutes)
+  inboxManager.startBackgroundScanner(10);
+
 
   // Background Autonomous Job Radar: Startup check for daily refresh (if >24h elapsed)
   setTimeout(async () => {

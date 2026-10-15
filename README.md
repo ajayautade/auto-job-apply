@@ -63,6 +63,18 @@ Auto Job Apply AI is **100% customizable for any candidate and job domain**. Whe
 * **Sender Reputation Guard**: Enforces daily send limits (default: 150/day, customizable via UI or `.env`) to safeguard Gmail accounts.
 * **Dynamic Jitter**: Injects natural delays between emails to mimic human sending cadence.
 
+### 9. 📬 Two-Way Inbox Intelligence & Auto-Reply Radar
+* **Direct IMAP Inbox Listener**: Connects securely to your Gmail inbox to listen for incoming recruiter replies to your cold applications and follow-ups.
+* **AI Sentiment & Intent Categorization**:
+  * 🟢 **Interview Invitation**: Screening calls, technical rounds, Google Meet / Zoom invites.
+  * 🌟 **Positive Interest**: Shortlisting notices, profile under hiring manager review.
+  * ❓ **Information Requested**: Inquiries regarding notice period, current & expected CTC, location eligibility.
+  * 🛑 **Rejection / Closed**: Position filled or location mismatch.
+  * 🟡 **Out of Office (OOO)**: Auto-responders with extracted return dates.
+* **Instant Auto-Stop Cadence**: Instantly removes any contact from the follow-up cadence once a reply or rejection is detected to avoid awkward follow-ups. Reschedules OOO follow-ups past the return date.
+* **Live Audio & Desktop Alerts**: Synthesizes real-time audio chimes and native browser notifications when high-priority interview invitations are received.
+* **1-Click Smart Reply Drafter**: Tailored reply generation with tone choices (Interview Availability, Professional, Direct CTC/Notice, Graceful) and one-click pre-filled Gmail compose dispatch.
+
 ---
 
 ## 🏗️ System Architecture
@@ -79,6 +91,12 @@ graph TD
     H --> I[Activity Log & Smart 4-Day Follow-Up Scheduler]
     F --> J[WhatsApp Leads Queue - PENDING_APPROVAL]
     J -->|User 1-Click Approval| K[WhatsApp Web Direct Launch]
+    
+    L[Gmail Inbox via IMAP] -->|Background Scanner| M[Two-Way Inbox Intelligence Engine]
+    M -->|Gemini Intent & Sentiment AI| N{Classify Recruiter Reply}
+    N -->|Interview Invite / Positive| O[Real-Time Audio Chime + Desktop Alert + AI Reply Drafter]
+    N -->|Rejection / Reply Detected| P[Auto-Stop Cadence: Cancel Follow-Up & Mark Contact]
+    N -->|Out of Office| Q[Extract Return Date & Postpone Follow-Up]
 ```
 
 ---
