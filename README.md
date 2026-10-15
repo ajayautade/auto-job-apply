@@ -4,6 +4,104 @@
 > 
 > *Drop job screenshots into a folder or import custom CSV files → AI extracts job requirements & recruiter contacts → Generates tailored, human-sounding cold emails & WhatsApp pitches matched to your persona and PDF resume → Dispatches automatically with resume attachments, duplicate protection, daily rate throttling, and smart follow-up reminders.*
 
+<p align="center">
+  <img src="docs/screenshots/01-autopilot-dashboard.png" alt="Auto Job Apply AI Dashboard" width="100%">
+</p>
+
+---
+
+## 📸 Application Visual Tour & Walkthrough
+
+Explore the core user interface and autonomous automation capabilities:
+
+### 1. 🤖 Autonomous Auto-Pilot Watcher & Command Center
+> Drop single or multi-part job screenshots directly into the local `auto_jobs/` directory. The event watcher triggers real-time Gemini AI extraction, candidate-resume matching, and outbound dispatch without a single click.
+
+<p align="center">
+  <img src="docs/screenshots/01-autopilot-dashboard.png" alt="Auto-Pilot Watcher Dashboard" width="95%">
+</p>
+
+---
+
+### 2. ✍️ Manual Screenshot Analysis & Tailored Cold Email Drafter
+> Drag and drop job posting screenshots for instant preview. Gemini Vision inspects the image, pinpoints recruiter details, extracts core requirements, and synthesizes an anti-AI, human-crafted pitch referencing your specific PDF resume achievements.
+
+<p align="center">
+  <img src="docs/screenshots/02-manual-upload.png" alt="Manual Upload & AI Analysis" width="95%">
+</p>
+
+---
+
+### 3. 📤 High-Volume Cold Email Outreach Campaign Engine
+> Execute curated or custom high-volume outreach with built-in daily quota guards, natural anti-spam jitter, and real-time SSE progress tracking.
+
+<p align="center">
+  <img src="docs/screenshots/03-cold-mail-campaign.png" alt="Cold Outreach Campaign Hub" width="95%">
+</p>
+
+---
+
+### 4. 📁 Universal Custom CSV Importer & Multimodal Image OCR
+> Seamlessly import recruiter databases from any custom CSV file with automatic column mapping, or extract contacts straight from raw screenshots and email lists via Gemini Vision OCR.
+
+<p align="center">
+  <img src="docs/screenshots/04-multi-email-importer-ocr.png" alt="Multi-Email Importer & OCR" width="95%">
+</p>
+
+---
+
+### 5. 📬 Two-Way Inbox Intelligence & Recruiter Sentiment Radar
+> Direct Gmail IMAP listener scans recruiter responses to your cold outreach. AI categorizes sentiment (Interview Invite, Positive Interest, Info Request, Rejection, OOO), plays real-time audio alerts, and automatically stops follow-up cadences.
+
+<p align="center">
+  <img src="docs/screenshots/11-two-way-inbox-intelligence.jpeg" alt="Two-Way Inbox Intelligence" width="95%">
+</p>
+
+---
+
+### 6. ⏱️ Smart 4-Day Follow-Up Cadence with Manual Approval
+> Keep opportunities warm with automated multi-touch follow-ups. Every scheduled follow-up draft requires 1-click manual approval before dispatch, guaranteeing complete oversight.
+
+<p align="center">
+  <img src="docs/screenshots/07-smart-followup-cadence.png" alt="Smart Follow-Up Cadence" width="95%">
+</p>
+
+---
+
+### 7. 🛡️ Delivery & Bounce Shield
+> Automatically cleans contact lists by detecting IMAP bounce notifications (`550 User unknown`, `Mailbox unavailable`) and marking invalid addresses as DEAD to safeguard your sender domain reputation.
+
+<p align="center">
+  <img src="docs/screenshots/05-delivery-bounce-shield.png" alt="Delivery & Bounce Shield" width="95%">
+</p>
+
+---
+
+### 8. 🌐 Live ATS Job Radar (Greenhouse, Ashby, Lever)
+> Real-time crawler monitoring top tech company career boards to catch newly opened positions the moment they are posted.
+
+<p align="center">
+  <img src="docs/screenshots/06-live-ats-job-radar.png" alt="Live ATS Job Radar" width="95%">
+</p>
+
+---
+
+### 9. 👥 Recruiter Directories & Extracted Contact Pools
+> Browse and filter pre-loaded databases of 3,400+ verified tech HR contacts alongside dynamic pools of leads extracted from your processed job postings.
+
+| Curated Tech HR Directory | Extracted Job Posting Leads |
+|:---:|:---:|
+| <img src="docs/screenshots/09-hr-contact-directory.png" alt="Curated HR Directory" width="100%"> | <img src="docs/screenshots/10-extracted-contacts-directory.png" alt="Extracted Contacts Directory" width="100%"> |
+
+---
+
+### 10. 📄 Sent Activity History with 10-Item Pagination
+> Browse through your sent applications with smooth 10-per-page pagination and one-click detailed email inspection modals.
+
+<p align="center">
+  <img src="docs/screenshots/08-activity-log-pagination.jpeg" alt="Activity Log Pagination" width="95%">
+</p>
+
 ---
 
 ## 🌍 Built for Any Job Role & Candidate
