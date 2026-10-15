@@ -834,10 +834,66 @@ app.post('/api/followups/schedule', (req, res) => {
 
 app.post('/api/followups/:id/send-now', async (req, res) => {
   try {
-    const result = await autoPilot.sendFollowUpNow(req.params.id);
+    const customDraft = req.body && req.body.body ? { subject: req.body.subject, body: req.body.body } : null;
+    const result = await autoPilot.sendFollowUpNow(req.params.id, customDraft);
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/followups/:id/preview', async (req, res) => {
+  try {
+    if (!autoPilot.previewFollowUpDraft) {
+      return res.status(501).json({ success: false, error: 'Preview not supported' });
+    }
+    const preview = await autoPilot.previewFollowUpDraft(req.params.id);
+    res.json({ success: true, ...preview });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/followups/:id/approve', async (req, res) => {
+  try {
+    const customDraft = req.body && req.body.body ? { subject: req.body.subject, body: req.body.body } : null;
+    const result = await autoPilot.sendFollowUpNow(req.params.id, customDraft);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/followups/:id/postpone', (req, res) => {
+  try {
+    const days = parseInt(req.body.days, 10) || 3;
+    const updated = autoPilot.postponeFollowUp ? autoPilot.postponeFollowUp(req.params.id, days) : null;
+    res.json({ success: !!updated, item: updated });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/followups/approve-all-due', async (req, res) => {
+  try {
+    const list = autoPilot.getFollowUps ? autoPilot.getFollowUps() : [];
+    const now = new Date();
+    const dueItems = list.filter(f => (f.status === 'PENDING_APPROVAL' || (f.status === 'SCHEDULED' && new Date(f.follow_up_due) <= now)));
+    
+    let sentCount = 0;
+    for (const item of dueItems) {
+      if (autoPilot.isDailyLimitReached && autoPilot.isDailyLimitReached()) break;
+      try {
+        await autoPilot.sendFollowUpNow(item.id);
+        sentCount++;
+        await new Promise(r => setTimeout(r, 2000));
+      } catch (e) {
+        console.warn(`[Follow-Up Cadence] Error sending approved follow-up to ${item.contact_email}:`, e.message);
+      }
+    }
+    res.json({ success: true, count: sentCount, totalDue: dueItems.length });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -853,8 +909,8 @@ app.post('/api/followups/:id/cancel', (req, res) => {
 
 app.post('/api/followups/process-due', async (req, res) => {
   try {
-    await autoPilot.processDueFollowUps();
-    res.json({ success: true, message: 'Processed due follow-ups' });
+    const result = await autoPilot.processDueFollowUps();
+    res.json({ success: true, message: 'Processed due follow-ups', ...result });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

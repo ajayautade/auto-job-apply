@@ -882,7 +882,7 @@ ${profile.phone ? `📱 ${profile.phone}` : ''}
     }
   }
 
-  async function sendFollowUpNow(id) {
+  async function sendFollowUpNow(id, customDraft = null) {
     const list = getFollowUps();
     const item = list.find(f => f.id === id);
     if (!item) throw new Error('Follow-up not found');
@@ -892,9 +892,17 @@ ${profile.phone ? `📱 ${profile.phone}` : ''}
     }
 
     const currentResume = getSavedResume();
-    const draft = await draftFollowUpEmail(item, currentResume);
+    let draft;
+    if (customDraft && customDraft.body) {
+      draft = {
+        subject: customDraft.subject || `Following up: ${item.job_title || 'Job Application'}`,
+        body: customDraft.body
+      };
+    } else {
+      draft = await draftFollowUpEmail(item, currentResume);
+    }
 
-    console.log(`[Follow-Up Cadence] 📤 Sending scheduled follow-up for "${item.job_title}" to ${item.contact_email}...`);
+    console.log(`[Follow-Up Cadence] 📤 Dispatching approved follow-up for "${item.job_title}" to ${item.contact_email}...`);
     try {
       const sendResult = await sendEmailFn({
         to: item.contact_email,
@@ -907,6 +915,7 @@ ${profile.phone ? `📱 ${profile.phone}` : ''}
       item.status = 'SENT';
       item.sent_at = new Date().toISOString();
       item.message_id = sendResult.messageId || 'OK';
+      item.approved_by_user = true;
       saveFollowUps(list);
 
       recordDailySend(item.contact_email, item.job_title, item.company_name);
@@ -936,39 +945,71 @@ ${profile.phone ? `📱 ${profile.phone}` : ''}
       auto_deleted: false
     });
 
-    console.log(`[Follow-Up Cadence] ✅ Follow-up sent to ${item.contact_email} successfully!\n`);
+    console.log(`[Follow-Up Cadence] ✅ Approved follow-up sent to ${item.contact_email} successfully!\n`);
     return { success: true, item, draft };
   }
 
-  async function processDueFollowUps() {
-    if (isDailyLimitReached()) {
-      console.log(`[Follow-Up Cadence] ⏸️ Daily limit reached. Postponing due follow-ups.`);
-      return;
-    }
-
+  async function previewFollowUpDraft(id) {
     const list = getFollowUps();
-    const now = new Date();
-    const dueItems = list.filter(f => f.status === 'SCHEDULED' && new Date(f.follow_up_due) <= now);
-
-    if (dueItems.length === 0) return;
-
-    console.log(`[Follow-Up Cadence] ⏰ Found ${dueItems.length} due follow-up(s) ready for dispatch...`);
-
-    for (const item of dueItems) {
-      if (isDailyLimitReached()) break;
-      try {
-        await sendFollowUpNow(item.id);
-        const jitter = getRandomJitterMs();
-        await new Promise(r => setTimeout(r, jitter));
-      } catch (err) {
-        console.error(`[Follow-Up Cadence] Failed to send follow-up to ${item.contact_email}:`, err.message);
+    const item = list.find(f => f.id === id);
+    if (!item) throw new Error('Follow-up not found');
+    const currentResume = getSavedResume();
+    const draft = await draftFollowUpEmail(item, currentResume);
+    return {
+      item,
+      draft,
+      resume: {
+        name: currentResume.originalName || 'Candidate_Resume.pdf',
+        hasResume: !!currentResume.path
       }
-    }
+    };
   }
 
-  // Check for due follow-ups every 30 minutes
-  setInterval(processDueFollowUps, 30 * 60 * 1000);
-  setTimeout(processDueFollowUps, 12000);
+  function postponeFollowUp(id, days = 3) {
+    const list = getFollowUps();
+    const item = list.find(f => f.id === id);
+    if (!item) return false;
+    const currentDue = item.follow_up_due ? new Date(item.follow_up_due) : new Date();
+    const baseTime = currentDue > new Date() ? currentDue : new Date();
+    const newDueDate = new Date(baseTime.getTime() + days * 24 * 60 * 60 * 1000);
+    item.follow_up_due = newDueDate.toISOString();
+    item.status = 'SCHEDULED';
+    item.notes = `Postponed by candidate for ${days} days`;
+    saveFollowUps(list);
+    return item;
+  }
+
+  async function processDueFollowUps() {
+    const list = getFollowUps();
+    const now = new Date();
+    let updated = false;
+
+    // MANUAL APPROVAL ENFORCEMENT:
+    // When follow-ups reach their due date, transition them to PENDING_APPROVAL.
+    // They are NEVER automatically sent without explicit candidate approval!
+    for (const item of list) {
+      if (item.status === 'SCHEDULED' && new Date(item.follow_up_due) <= now) {
+        item.status = 'PENDING_APPROVAL';
+        item.ready_for_approval_at = now.toISOString();
+        updated = true;
+      }
+    }
+
+    if (updated) {
+      saveFollowUps(list);
+      const pendingCount = list.filter(f => f.status === 'PENDING_APPROVAL').length;
+      console.log(`[Follow-Up Cadence] ⏳ ${pendingCount} due follow-up(s) queued for manual candidate approval.`);
+    }
+
+    return {
+      success: true,
+      pendingCount: list.filter(f => f.status === 'PENDING_APPROVAL').length
+    };
+  }
+
+  // Periodic check: flags due follow-ups for candidate review every 15 minutes (NEVER auto-dispatches)
+  setInterval(processDueFollowUps, 15 * 60 * 1000);
+  setTimeout(processDueFollowUps, 8000);
 
   // ──────────────────────────────────────────────
   // 4. Continuous Auto-Pilot Processing Loop
@@ -1426,6 +1467,8 @@ IMPORTANT:
     cancelFollowUp,
     draftFollowUpEmail,
     sendFollowUpNow,
+    previewFollowUpDraft,
+    postponeFollowUp,
     processDueFollowUps,
     getWhatsAppLeads,
     saveWhatsAppLeads,

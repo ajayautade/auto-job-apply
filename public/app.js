@@ -184,6 +184,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const followUpsTableBody = document.getElementById('followUpsTableBody');
   const processDueFollowUpsBtn = document.getElementById('processDueFollowUpsBtn');
   const refreshFollowUpsBtn = document.getElementById('refreshFollowUpsBtn');
+  const approveAllDueBtn = document.getElementById('approveAllDueBtn');
+  const approveAllDueCount = document.getElementById('approveAllDueCount');
+  const followUpsFilterPills = document.getElementById('followUpsFilterPills');
+  const fuCountAll = document.getElementById('fuCountAll');
+  const fuCountApproval = document.getElementById('fuCountApproval');
+  const fuCountScheduled = document.getElementById('fuCountScheduled');
+  const fuCountSent = document.getElementById('fuCountSent');
+  const fuCountHalted = document.getElementById('fuCountHalted');
+
+  // Follow-Up Review & Manual Approval Modal Elements
+  const followUpReviewModal = document.getElementById('followUpReviewModal');
+  const closeFollowUpReviewModalBtn = document.getElementById('closeFollowUpReviewModalBtn');
+  const cancelFollowUpModalBtn = document.getElementById('cancelFollowUpModalBtn');
+  const fuModalInfoBox = document.getElementById('fuModalInfoBox');
+  const fuModalSubject = document.getElementById('fuModalSubject');
+  const fuModalBody = document.getElementById('fuModalBody');
+  const fuModalCharCount = document.getElementById('fuModalCharCount');
+  const fuModalResumeName = document.getElementById('fuModalResumeName');
+  const postponeFollowUpBtn = document.getElementById('postponeFollowUpBtn');
+  const cancelCadenceFromModalBtn = document.getElementById('cancelCadenceFromModalBtn');
+  const confirmApproveFollowUpBtn = document.getElementById('confirmApproveFollowUpBtn');
 
   // WhatsApp Outreach Elements
   const whatsAppEmpty = document.getElementById('whatsAppEmpty');
@@ -268,6 +289,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentJobData = null;
   let historyData = [];
   let followUpsData = [];
+  let currentFuFilter = 'ALL';
+  let activePreviewFollowUpId = null;
   let whatsAppLeadsData = [];
   let currentWhatsAppFilter = 'ALL';
   let currentWhatsAppSearch = '';
@@ -829,28 +852,82 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ── Load Follow-Ups Cadence ──
+  // ── Load Follow-Ups Cadence with Manual Approval Enforcement ──
+  const isNeedsApproval = (f) => {
+    if (!f) return false;
+    if (f.status === 'PENDING_APPROVAL') return true;
+    if (f.status === 'SCHEDULED') {
+      const due = f.follow_up_due || f.scheduled_for;
+      return due && new Date(due) <= new Date();
+    }
+    return false;
+  };
+
   async function loadFollowUps() {
     try {
       const res = await fetch('/api/followups');
       const data = await res.json();
       followUpsData = data.followUps || data.follow_ups || [];
 
-      // Update badge count
+      const now = new Date();
+      const approvalCount = followUpsData.filter(isNeedsApproval).length;
+      const scheduledCount = followUpsData.filter(f => f.status === 'SCHEDULED' && !isNeedsApproval(f)).length;
+      const sentCount = followUpsData.filter(f => f.status === 'SENT').length;
+      const haltedCount = followUpsData.filter(f => f.status === 'REPLIED' || f.status === 'CANCELLED' || (f.status && f.status.startsWith('CANCELLED'))).length;
+      const totalCount = followUpsData.length;
+
+      // Update badge in navigation tab
       if (followUpsTabBadge) {
-        const scheduledCount = followUpsData.filter(f => f.status === 'SCHEDULED').length;
-        if (scheduledCount > 0) {
+        if (approvalCount > 0) {
           followUpsTabBadge.style.display = 'inline-block';
+          followUpsTabBadge.style.background = '#f59e0b';
+          followUpsTabBadge.textContent = `${approvalCount} due`;
+        } else if (scheduledCount > 0) {
+          followUpsTabBadge.style.display = 'inline-block';
+          followUpsTabBadge.style.background = '';
           followUpsTabBadge.textContent = scheduledCount;
         } else {
           followUpsTabBadge.style.display = 'none';
         }
       }
 
-      renderFollowUpsTable(followUpsData);
+      // Update filter counter pills
+      if (fuCountAll) fuCountAll.textContent = totalCount;
+      if (fuCountApproval) fuCountApproval.textContent = approvalCount;
+      if (fuCountScheduled) fuCountScheduled.textContent = scheduledCount;
+      if (fuCountSent) fuCountSent.textContent = sentCount;
+      if (fuCountHalted) fuCountHalted.textContent = haltedCount;
+
+      // Update header "Approve All Due" button
+      if (approveAllDueBtn) {
+        if (approvalCount > 0) {
+          approveAllDueBtn.style.display = 'inline-flex';
+          if (approveAllDueCount) approveAllDueCount.textContent = approvalCount;
+        } else {
+          approveAllDueBtn.style.display = 'none';
+        }
+      }
+
+      applyFollowUpsFilterAndRender();
     } catch (e) {
       console.error('Failed to load follow-ups:', e);
     }
+  }
+
+  function applyFollowUpsFilterAndRender() {
+    let filtered = followUpsData || [];
+
+    if (currentFuFilter === 'APPROVAL') {
+      filtered = filtered.filter(isNeedsApproval);
+    } else if (currentFuFilter === 'SCHEDULED') {
+      filtered = filtered.filter(f => f.status === 'SCHEDULED' && !isNeedsApproval(f));
+    } else if (currentFuFilter === 'SENT') {
+      filtered = filtered.filter(f => f.status === 'SENT');
+    } else if (currentFuFilter === 'HALTED') {
+      filtered = filtered.filter(f => f.status === 'REPLIED' || f.status === 'CANCELLED' || (f.status && f.status.startsWith('CANCELLED')));
+    }
+
+    renderFollowUpsTable(filtered);
   }
 
   function renderFollowUpsTable(items) {
@@ -859,6 +936,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!items || items.length === 0) {
       followUpsEmpty.style.display = 'block';
       followUpsTable.style.display = 'none';
+      const emptyTitle = followUpsEmpty.querySelector('.history-empty-title');
+      const emptyDesc = followUpsEmpty.querySelector('.history-empty-desc');
+      if (currentFuFilter !== 'ALL' && followUpsData.length > 0) {
+        if (emptyTitle) emptyTitle.textContent = 'No Follow-Ups In This Tab';
+        if (emptyDesc) emptyDesc.textContent = `No contacts currently match the "${currentFuFilter}" filter. Click "All" to view the full queue.`;
+      } else {
+        if (emptyTitle) emptyTitle.textContent = 'No Follow-Ups Queued Yet';
+        if (emptyDesc) emptyDesc.textContent = 'When you send cold emails, intelligent 4-day follow-up reminders are queued here and will require your approval before sending!';
+      }
       return;
     }
 
@@ -871,21 +957,22 @@ document.addEventListener('DOMContentLoaded', () => {
     items.forEach(item => {
       const tr = document.createElement('tr');
       const dueDateVal = item.follow_up_due || item.scheduled_for;
-      const isDue = item.status === 'SCHEDULED' && dueDateVal && new Date(dueDateVal) <= now;
+      const requiresApproval = isNeedsApproval(item);
 
       let statusBadge = '';
       if (item.status === 'SENT') {
-        statusBadge = '<span class="badge badge-sent"><span class="badge-dot"></span>SENT</span>';
+        const approvedTag = item.approved_by_user ? ' (Approved)' : '';
+        statusBadge = `<span class="badge badge-sent" title="Dispatched with candidate authorization"><span class="badge-dot"></span>SENT${approvedTag}</span>`;
       } else if (item.status === 'REPLIED') {
         const note = item.notes ? ` (${escapeHtml(item.notes)})` : ' (HR Replied)';
         statusBadge = `<span class="badge badge-replied" title="Follow-up cadence halted automatically by Inbox Intelligence"><span class="badge-dot"></span>🛑 HALTED${note}</span>`;
-      } else if (item.status === 'CANCELLED') {
-        const note = item.notes ? ` (${escapeHtml(item.notes)})` : '';
-        statusBadge = `<span class="badge badge-cancelled" title="Cadence cancelled: ${escapeHtml(item.notes || 'Auto-stopped')}"><span class="badge-dot"></span>🛑 CANCELLED${note}</span>`;
+      } else if (item.status === 'CANCELLED' || item.status === 'CANCELLED_BOUNCED') {
+        const note = item.notes || item.cancelReason ? ` (${escapeHtml(item.notes || item.cancelReason)})` : '';
+        statusBadge = `<span class="badge badge-cancelled" title="Cadence cancelled: ${escapeHtml(item.notes || item.cancelReason || 'Stopped')}"><span class="badge-dot"></span>🛑 CANCELLED${note}</span>`;
       } else if (item.notes && item.notes.includes('Out of Office')) {
         statusBadge = `<span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);" title="${escapeHtml(item.notes)}"><span class="badge-dot"></span>🟡 POSTPONED (OOO)</span>`;
-      } else if (isDue) {
-        statusBadge = '<span class="badge badge-due-now"><span class="badge-dot"></span>DUE NOW</span>';
+      } else if (requiresApproval) {
+        statusBadge = '<span class="badge badge-due-now" style="font-weight: 600;" title="Cooldown period elapsed. Awaiting candidate manual approval before sending."><span class="badge-dot"></span>⏳ NEEDS APPROVAL</span>';
       } else {
         statusBadge = '<span class="badge badge-scheduled"><span class="badge-dot"></span>SCHEDULED</span>';
       }
@@ -902,27 +989,47 @@ document.addEventListener('DOMContentLoaded', () => {
       const recipientEmail = item.contact_email || item.recipient_email || 'N/A';
 
       let actionHtml = '';
-      if (item.status === 'SCHEDULED') {
+      if (requiresApproval) {
         actionHtml = `
-          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-            <button class="btn btn-secondary btn-sm send-followup-now-btn" data-id="${escapeHtml(item.id)}" title="Send this follow-up email right now" style="padding: 4px 8px; font-size: 11px;">
-              ⚡ Send
+          <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+            <button class="btn btn-primary btn-sm approve-followup-now-btn" data-id="${escapeHtml(item.id)}" title="Approve and send this follow-up email immediately" style="background: #10b981; border-color: #10b981; padding: 4px 10px; font-size: 11.5px; font-weight: 600;">
+              ✅ Approve & Send
             </button>
-            <button class="btn btn-ghost btn-sm mark-replied-btn" data-id="${escapeHtml(item.id)}" title="Mark as recruiter replied (stops further follow-ups)" style="padding: 4px 8px; font-size: 11px; color: var(--accent-secondary);">
-              💬 Replied
+            <button class="btn btn-secondary btn-sm review-followup-btn" data-id="${escapeHtml(item.id)}" title="Inspect and edit the personalized follow-up pitch" style="padding: 4px 10px; font-size: 11.5px;">
+              ✨ Review Pitch
             </button>
-            <button class="btn btn-ghost btn-sm cancel-followup-btn" data-id="${escapeHtml(item.id)}" title="Cancel scheduled follow-up" style="padding: 4px 8px; font-size: 11px; color: #ef4444;">
+            <button class="btn btn-ghost btn-sm postpone-followup-btn" data-id="${escapeHtml(item.id)}" title="Postpone follow-up by 3 business days" style="padding: 4px 8px; font-size: 11.5px; color: #fbbf24;">
+              ⏰ +3d
+            </button>
+            <button class="btn btn-ghost btn-sm cancel-followup-btn" data-id="${escapeHtml(item.id)}" title="Cancel this follow-up cadence" style="padding: 4px 8px; font-size: 11.5px; color: #ef4444;">
               ✕ Cancel
             </button>
           </div>
         `;
+      } else if (item.status === 'SCHEDULED') {
+        actionHtml = `
+          <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+            <button class="btn btn-secondary btn-sm review-followup-btn" data-id="${escapeHtml(item.id)}" title="Preview draft ahead of time and customize" style="padding: 4px 8px; font-size: 11px;">
+              ✨ Preview
+            </button>
+            <button class="btn btn-ghost btn-sm approve-followup-now-btn" data-id="${escapeHtml(item.id)}" title="Approve and send early right now" style="padding: 4px 8px; font-size: 11px; color: #38bdf8;">
+              ⚡ Send Early
+            </button>
+            <button class="btn btn-ghost btn-sm mark-replied-btn" data-id="${escapeHtml(item.id)}" title="Mark as recruiter replied (halts cadence)" style="padding: 4px 8px; font-size: 11px; color: var(--accent-secondary);">
+              💬 Replied
+            </button>
+            <button class="btn btn-ghost btn-sm cancel-followup-btn" data-id="${escapeHtml(item.id)}" title="Cancel scheduled follow-up" style="padding: 4px 8px; font-size: 11px; color: #ef4444;">
+              ✕
+            </button>
+          </div>
+        `;
       } else if (item.status === 'SENT') {
-        const sentTime = item.sent_at ? new Date(item.sent_at).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '';
-        actionHtml = `<span style="font-size: 12px; color: var(--accent-secondary);">Sent ${sentTime}</span>`;
+        const sentTime = item.sent_at ? new Date(item.sent_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+        actionHtml = `<span style="font-size: 12px; color: #34d399; font-weight: 500;">✅ Approved & Sent ${sentTime}</span>`;
       } else if (item.status === 'REPLIED') {
-        actionHtml = `<span style="font-size: 12px; color: #10b981;">Recruiter Replied</span>`;
+        actionHtml = `<span style="font-size: 12px; color: #10b981; font-weight: 500;">💬 Recruiter Replied (Cadence Closed)</span>`;
       } else {
-        actionHtml = `<span style="font-size: 12px; color: var(--text-muted);">Cancelled</span>`;
+        actionHtml = `<span style="font-size: 12px; color: var(--text-muted);">🛑 Cancelled</span>`;
       }
 
       tr.innerHTML = `
@@ -936,7 +1043,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </td>
         <td style="color: var(--text-muted); font-size: 12px;">${initialTimeFormatted}</td>
         <td>
-          <span style="font-size: 12px; ${isDue ? 'color: #f59e0b; font-weight: 600;' : 'color: var(--text-primary);'}">
+          <span style="font-size: 12px; ${requiresApproval ? 'color: #fbbf24; font-weight: 600;' : 'color: var(--text-primary);'}">
             ${scheduledTimeFormatted}
           </span>
         </td>
@@ -947,28 +1054,63 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Attach event listeners for row action buttons
-    followUpsTableBody.querySelectorAll('.send-followup-now-btn').forEach(btn => {
+    followUpsTableBody.querySelectorAll('.approve-followup-now-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
         const id = btn.getAttribute('data-id');
         btn.disabled = true;
-        btn.textContent = 'Sending...';
+        btn.innerHTML = `
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
+            <polyline points="23 4 23 10 17 10"/>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          </svg>
+          <span>Sending...</span>
+        `;
         try {
-          const res = await fetch(`/api/followups/${id}/send-now`, { method: 'POST' });
+          const res = await fetch(`/api/followups/${id}/approve`, { method: 'POST' });
           const data = await res.json();
           if (data.success) {
-            showToast('Follow-up email dispatched successfully!', 'success');
+            showToast('✅ Follow-up approved & dispatched successfully to recruiter!', 'success');
             loadFollowUps();
             loadDailyStats();
             loadHistory();
           } else {
             showToast(data.error || 'Failed to send follow-up', 'error');
             btn.disabled = false;
-            btn.textContent = '⚡ Send';
+            btn.textContent = '✅ Approve & Send';
           }
         } catch (e) {
           showToast('Failed to send follow-up', 'error');
           btn.disabled = false;
-          btn.textContent = '⚡ Send';
+          btn.textContent = '✅ Approve & Send';
+        }
+      });
+    });
+
+    followUpsTableBody.querySelectorAll('.review-followup-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        openFollowUpReviewModal(id);
+      });
+    });
+
+    followUpsTableBody.querySelectorAll('.postpone-followup-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        try {
+          const res = await fetch(`/api/followups/${id}/postpone`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ days: 3 })
+          });
+          const data = await res.json();
+          if (data.success) {
+            showToast('⏰ Follow-up postponed by 3 days.', 'info');
+            loadFollowUps();
+          } else {
+            showToast(data.error || 'Failed to postpone', 'error');
+          }
+        } catch (e) {
+          showToast('Failed to postpone follow-up', 'error');
         }
       });
     });
@@ -1011,6 +1153,247 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // ── Follow-Up Pitch Review & Manual Approval Modal Logic ──
+  async function openFollowUpReviewModal(id) {
+    activePreviewFollowUpId = id;
+    if (!followUpReviewModal) return;
+
+    followUpReviewModal.style.display = 'flex';
+    if (fuModalInfoBox) {
+      fuModalInfoBox.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 13px; padding: 6px 0;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
+            <polyline points="23 4 23 10 17 10"/>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          </svg>
+          <span>Loading personalized follow-up pitch & recruiter context...</span>
+        </div>
+      `;
+    }
+    if (fuModalSubject) fuModalSubject.value = 'Generating subject...';
+    if (fuModalBody) fuModalBody.value = 'Drafting personalized follow-up email...';
+    if (confirmApproveFollowUpBtn) confirmApproveFollowUpBtn.disabled = true;
+
+    try {
+      const res = await fetch(`/api/followups/${id}/preview`);
+      const data = await res.json();
+      if (!data.success) {
+        showToast(data.error || 'Failed to load preview draft', 'error');
+        followUpReviewModal.style.display = 'none';
+        return;
+      }
+
+      const item = data.item;
+      const draft = data.draft || {};
+      const resume = data.resume || {};
+
+      const initialTime = item.original_sent_at || item.initial_sent_at;
+      const initialTimeFormatted = initialTime
+        ? new Date(initialTime).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+        : 'N/A';
+
+      if (fuModalInfoBox) {
+        fuModalInfoBox.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap;">
+            <div>
+              <div style="font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 3px;">
+                ${escapeHtml(item.company_name || 'Target Company')} — <span style="color: #38bdf8;">${escapeHtml(item.job_title || 'Role')}</span>
+              </div>
+              <div style="font-size: 12.5px; color: var(--text-muted); font-family: monospace;">
+                Recruiter: <strong style="color: #cbd5e1;">${escapeHtml(item.contact_email || 'Email')}</strong>
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <span class="badge" style="background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.45); font-size: 11px;">
+                ${item.follow_up_number ? `Follow-Up #${item.follow_up_number}` : 'Follow-Up #1'}
+              </span>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                Original email: ${initialTimeFormatted}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      if (fuModalSubject) fuModalSubject.value = draft.subject || `Following up: ${item.job_title || 'Application'} - ${item.company_name || ''}`;
+      if (fuModalBody) fuModalBody.value = draft.body || '';
+      if (fuModalResumeName) fuModalResumeName.textContent = resume.name || 'Candidate_Resume.pdf';
+
+      updateFuModalWordCount();
+      if (confirmApproveFollowUpBtn) confirmApproveFollowUpBtn.disabled = false;
+    } catch (err) {
+      showToast('Error loading follow-up preview', 'error');
+      followUpReviewModal.style.display = 'none';
+    }
+  }
+
+  function updateFuModalWordCount() {
+    if (!fuModalBody || !fuModalCharCount) return;
+    const text = fuModalBody.value || '';
+    const words = text.trim().split(/\s+/).filter(Boolean).length;
+    fuModalCharCount.textContent = `${words} words · ${text.length} chars`;
+  }
+
+  if (fuModalBody) {
+    fuModalBody.addEventListener('input', updateFuModalWordCount);
+  }
+
+  if (closeFollowUpReviewModalBtn) {
+    closeFollowUpReviewModalBtn.addEventListener('click', () => {
+      if (followUpReviewModal) followUpReviewModal.style.display = 'none';
+    });
+  }
+
+  if (cancelFollowUpModalBtn) {
+    cancelFollowUpModalBtn.addEventListener('click', () => {
+      if (followUpReviewModal) followUpReviewModal.style.display = 'none';
+    });
+  }
+
+  if (postponeFollowUpBtn) {
+    postponeFollowUpBtn.addEventListener('click', async () => {
+      if (!activePreviewFollowUpId) return;
+      try {
+        const res = await fetch(`/api/followups/${activePreviewFollowUpId}/postpone`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ days: 3 })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('⏰ Follow-up postponed by 3 days.', 'info');
+          if (followUpReviewModal) followUpReviewModal.style.display = 'none';
+          loadFollowUps();
+        } else {
+          showToast(data.error || 'Failed to postpone', 'error');
+        }
+      } catch (e) {
+        showToast('Error postponing follow-up', 'error');
+      }
+    });
+  }
+
+  if (cancelCadenceFromModalBtn) {
+    cancelCadenceFromModalBtn.addEventListener('click', async () => {
+      if (!activePreviewFollowUpId) return;
+      if (!confirm('Cancel this follow-up cadence completely?')) return;
+      try {
+        const res = await fetch(`/api/followups/${activePreviewFollowUpId}/cancel`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          showToast('🛑 Follow-up cadence cancelled.', 'info');
+          if (followUpReviewModal) followUpReviewModal.style.display = 'none';
+          loadFollowUps();
+        } else {
+          showToast(data.error || 'Failed to cancel', 'error');
+        }
+      } catch (e) {
+        showToast('Error cancelling cadence', 'error');
+      }
+    });
+  }
+
+  if (confirmApproveFollowUpBtn) {
+    confirmApproveFollowUpBtn.addEventListener('click', async () => {
+      if (!activePreviewFollowUpId) return;
+      const subject = fuModalSubject ? fuModalSubject.value.trim() : '';
+      const body = fuModalBody ? fuModalBody.value.trim() : '';
+      if (!body) {
+        showToast('Please enter an email body before approving', 'warning');
+        return;
+      }
+
+      confirmApproveFollowUpBtn.disabled = true;
+      confirmApproveFollowUpBtn.innerHTML = `
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
+          <polyline points="23 4 23 10 17 10"/>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+        </svg>
+        <span>Sending Approved Pitch...</span>
+      `;
+
+      try {
+        const res = await fetch(`/api/followups/${activePreviewFollowUpId}/approve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subject, body })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('✅ Follow-up approved & dispatched successfully to recruiter!', 'success');
+          if (followUpReviewModal) followUpReviewModal.style.display = 'none';
+          loadFollowUps();
+          loadDailyStats();
+          loadHistory();
+        } else {
+          showToast(data.error || 'Failed to dispatch follow-up', 'error');
+        }
+      } catch (e) {
+        showToast('Error dispatching follow-up', 'error');
+      } finally {
+        confirmApproveFollowUpBtn.disabled = false;
+        confirmApproveFollowUpBtn.innerHTML = `✅ Approve & Send Now`;
+      }
+    });
+  }
+
+  // ── Batch "Approve All Due" Action ──
+  if (approveAllDueBtn) {
+    approveAllDueBtn.addEventListener('click', async () => {
+      const dueCount = followUpsData.filter(isNeedsApproval).length;
+      if (dueCount === 0) {
+        showToast('No pending due follow-ups to approve.', 'info');
+        return;
+      }
+
+      if (!confirm(`Are you sure you want to approve and send all ${dueCount} due follow-up emails right now?`)) {
+        return;
+      }
+
+      approveAllDueBtn.disabled = true;
+      approveAllDueBtn.innerHTML = `
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
+          <polyline points="23 4 23 10 17 10"/>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+        </svg>
+        <span>Sending Due Emails...</span>
+      `;
+
+      try {
+        const res = await fetch('/api/followups/approve-all-due', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`✅ Successfully approved & dispatched ${data.count} follow-up(s)!`, 'success');
+          loadFollowUps();
+          loadDailyStats();
+          loadHistory();
+        } else {
+          showToast(data.error || 'Failed to approve all due follow-ups', 'error');
+        }
+      } catch (e) {
+        showToast('Error approving all due follow-ups', 'error');
+      } finally {
+        approveAllDueBtn.disabled = false;
+        approveAllDueBtn.innerHTML = `
+          <span>✅</span>
+          <span>Approve All Due (<span id="approveAllDueCount">${dueCount}</span>)</span>
+        `;
+      }
+    });
+  }
+
+  // ── Filter Pills Switcher ──
+  if (followUpsFilterPills) {
+    followUpsFilterPills.querySelectorAll('.inbox-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        followUpsFilterPills.querySelectorAll('.inbox-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        currentFuFilter = pill.getAttribute('data-fu-filter') || 'ALL';
+        applyFollowUpsFilterAndRender();
+      });
+    });
+  }
+
   // ── Follow-Up Section Controls ──
   if (processDueFollowUpsBtn) {
     processDueFollowUpsBtn.addEventListener('click', async () => {
@@ -1020,21 +1403,23 @@ document.addEventListener('DOMContentLoaded', () => {
           <polyline points="23 4 23 10 17 10"/>
           <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
         </svg>
-        <span>Processing...</span>
+        <span>Checking Due Follow-Ups...</span>
       `;
       try {
         const res = await fetch('/api/followups/process-due', { method: 'POST' });
         const data = await res.json();
         if (data.success) {
-          showToast(`Processed due follow-ups: ${data.sent_count} sent`, data.sent_count > 0 ? 'success' : 'info');
+          if (data.pendingCount > 0) {
+            showToast(`⏳ Found ${data.pendingCount} due follow-up(s) waiting for your manual approval!`, 'info');
+          } else {
+            showToast('✨ No new follow-ups are due right now.', 'info');
+          }
           loadFollowUps();
-          loadDailyStats();
-          loadHistory();
         } else {
-          showToast(data.error || 'Failed to process follow-ups', 'error');
+          showToast(data.error || 'Failed to check due follow-ups', 'error');
         }
       } catch (e) {
-        showToast('Error processing follow-ups', 'error');
+        showToast('Error checking due follow-ups', 'error');
       } finally {
         setTimeout(() => {
           processDueFollowUpsBtn.disabled = false;
@@ -1042,9 +1427,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
             </svg>
-            <span>Process Due Follow-Ups Now</span>
+            <span>Check Due Follow-Ups</span>
           `;
-        }, 800);
+        }, 600);
       }
     });
   }
